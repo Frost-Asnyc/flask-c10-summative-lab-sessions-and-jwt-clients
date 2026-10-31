@@ -88,3 +88,95 @@ def test_clock_in_rejects_a_second_active_shift_for_the_same_user():
     with app.app_context():
         assert Shift.query.count() == 1
         db.drop_all()
+
+
+def test_clock_out_requires_a_logged_in_user():
+    app = create_test_app()
+    with app.app_context():
+        db.create_all()
+
+    response = app.test_client().patch("/shifts/1/clock-out")
+
+    assert response.status_code == 401
+    assert response.json == {"errors": ["Authentication required"]}
+
+    with app.app_context():
+        db.drop_all()
+
+
+def test_clock_out_updates_the_current_users_active_shift():
+    app = create_test_app()
+    with app.app_context():
+        db.create_all()
+        shift = Shift(user_id=12, clock_in=datetime(2026, 10, 31, 8, 30))
+        db.session.add(shift)
+        db.session.commit()
+        shift_id = shift.id
+
+    client = app.test_client()
+    with client.session_transaction() as user_session:
+        user_session["user_id"] = 12
+
+    response = client.patch(f"/shifts/{shift_id}/clock-out")
+
+    assert response.status_code == 200
+    assert response.json["id"] == shift_id
+    assert response.json["clock_in"] == "2026-10-31T08:30:00+00:00"
+    assert response.json["clock_out"]
+
+    with app.app_context():
+        saved_shift = db.session.get(Shift, shift_id)
+        assert saved_shift.clock_out is not None
+        assert saved_shift.clock_out > saved_shift.clock_in
+        db.drop_all()
+
+
+def test_clock_out_does_not_find_another_users_shift():
+    app = create_test_app()
+    with app.app_context():
+        db.create_all()
+        shift = Shift(user_id=12, clock_in=datetime(2026, 10, 31, 8, 30))
+        db.session.add(shift)
+        db.session.commit()
+        shift_id = shift.id
+
+    client = app.test_client()
+    with client.session_transaction() as user_session:
+        user_session["user_id"] = 34
+
+    response = client.patch(f"/shifts/{shift_id}/clock-out")
+
+    assert response.status_code == 404
+    assert response.json == {"errors": ["Shift not found"]}
+
+    with app.app_context():
+        shift = db.session.get(Shift, shift_id)
+        assert shift.clock_out is None
+        db.drop_all()
+
+
+def test_clock_out_rejects_a_shift_that_is_already_closed():
+    app = create_test_app()
+    with app.app_context():
+        db.create_all()
+        shift = Shift(
+            user_id=12,
+            clock_in=datetime(2026, 10, 31, 8, 30),
+            clock_out=datetime(2026, 10, 31, 16, 30),
+        )
+        db.session.add(shift)
+        db.session.commit()
+        shift_id = shift.id
+
+    client = app.test_client()
+    with client.session_transaction() as user_session:
+        user_session["user_id"] = 12
+
+    response = client.patch(f"/shifts/{shift_id}/clock-out")
+
+    assert response.status_code == 400
+    assert response.json == {"errors": ["This shift is already clocked out"]}
+
+    with app.app_context():
+        assert Shift.query.count() == 1
+        db.drop_all()
