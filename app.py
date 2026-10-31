@@ -3,6 +3,7 @@ from flask_migrate import Migrate
 
 from config import Config
 from models import db
+from shift_routes import shift_routes
 
 
 migrate = Migrate()
@@ -17,6 +18,7 @@ def create_app(test_config=None):
 
     db.init_app(app)
     migrate.init_app(app, db)
+    app.register_blueprint(shift_routes)
 
     return app
 

@@ -9,8 +9,8 @@ class Shift(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, nullable=False, index=True)
-    clock_in = db.Column(db.DateTime, nullable=False)
-    clock_out = db.Column(db.DateTime, nullable=True)
+    clock_in = db.Column(db.DateTime(timezone=True), nullable=False)
+    clock_out = db.Column(db.DateTime(timezone=True), nullable=True)
 
     def __repr__(self):
         return f"<Shift {self.id} user={self.user_id}>"
