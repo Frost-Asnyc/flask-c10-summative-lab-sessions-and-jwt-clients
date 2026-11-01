@@ -2,6 +2,23 @@
 
 A Flask API for a productivity app. It provides session-based authentication, JWT login responses with a JWT-protected current-user endpoint, a user-owned notes resource, and shift clock-in/clock-out endpoints.
 
+## Project Overview
+
+The Productivity API is designed to support users in managing their daily productivity activities. It provides authentication, personal notes management, and employee shift tracking.
+
+Users can register and log in, manage their own notes, and record their working hours through clock-in and clock-out operations.
+
+The API uses session-based authentication to protect notes and shift resources, while also providing JWT authentication for the current-user endpoint.
+
+## Project Objectives
+
+- Provide secure user registration and login.
+- Allow users to manage their personal notes.
+- Support pagination when retrieving notes.
+- Record employee shift start and finish times.
+- Protect user data through ownership checks.
+- Verify important application functionality through automated tests
+
 ## Team contributions
 
 | Assignment | Responsibility | Contributor |
