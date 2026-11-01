@@ -43,11 +43,26 @@ Implemented the shift clock-in and clock-out workflow in `shift_routes.py` and a
 
 ## Features
 
-- Sign up and log in with passwords stored as bcrypt hashes.
-- Session cookies for the session-based client.
-- JWTs returned at login and signup, with `GET /me` for JWT verification.
-- Notes CRUD and pagination, scoped to the logged-in session user.
-- Shift clock-in and clock-out with ownership checks and duplicate-clock-in protection.
+The Productivity API provides the following features:
+
+- **User registration:** Allows new users to create accounts.
+- **User authentication:** Supports login using passwords stored as bcrypt hashes.
+- **Session management:** Uses session cookies to maintain authenticated users.
+- **JWT authentication:** Returns JSON Web Tokens during signup and login.
+- **Current-user verification:** Provides a protected `GET /me` endpoint for JWT verification.
+- **Notes management:** Allows authenticated users to create, view, update, and delete their own notes.
+- **Notes pagination:** Supports retrieving notes in pages.
+- **Shift clock-in:** Allows users to record when they start working.
+- **Shift clock-out:** Allows users to record when they finish working.
+- **Ownership security:** Prevents users from accessing another user's notes or shifts.
+- **Automated testing:** Uses pytest to test application functionality.
+
+## Technologies Used
+
+The project uses Python and Flask for the backend API, SQLAlchemy for database operations, and React for the frontend clients.
+
+The complete technology list and dependency versions are maintained in the project's `Pipfile` and frontend `package.json` files.
+
 
 ## Requirements
 
