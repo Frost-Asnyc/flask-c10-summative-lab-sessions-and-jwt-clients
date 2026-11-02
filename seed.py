@@ -4,7 +4,7 @@ from faker import Faker
 from flask_bcrypt import Bcrypt
 
 from app import create_app
-from models import Shift, User, db
+from models import Note, Shift, User, db
 
 
 fake = Faker()
@@ -42,7 +42,11 @@ def seed_database(user_count=3):
                 )
 
             if index == 2:
-                db.session.add(Shift(user_id=user.id, clock_in=now - timedelta(hours=2)))
+                db.session.add(Note(
+                        title=fake.sentence(nb_words=4).rstrip("."),
+                        content=fake.paragraph(nb_sentences=2),
+                        user_id=user.id,
+                    ))
 
     db.session.commit()
     return created_credentials
