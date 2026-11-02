@@ -23,12 +23,12 @@ The project includes two React frontend clients: one designed for JWT authentica
 
 | Assignment | Responsibility | Contributor |
 |---|---|---|
-| Person A | Project setup and database foundation | Victor Kingara |
-| Person B | Authentication | Faith Nderitu |
-| Person C | Shift CRUD and pagination | Humphrey Nandwa|
-| Person D | Shift clock-in/clock-out logic and ownership security | Lerionka Olentiki |
-| Person E | Testing | Timothy Koigi |
-| Person F | Documentation | Anord Wakaba |
+| Person A | Project setup and database foundation | Victor Kingara. |
+| Person B | Authentication | Faith Nderitu. |
+| Person C | Shift CRUD and pagination | Humphrey Nandwa. |
+| Person D | Shift clock-in/clock-out logic and ownership security | Lerionka Olentiki. |
+| Person E | Testing | Timothy Koigi. |
+| Person F | Documentation | Anord Wakaba. |
 
 ## Features
 
@@ -77,7 +77,6 @@ The project contains two frontend applications:
 
 ## Project Structure
 
-```text
 productivity-api/
 │
 ├── app.py
@@ -104,7 +103,6 @@ productivity-api/
 └── client-with-sessions/
     ├── package.json
     └── src/
-```
 
 ### Important Files
 
@@ -132,62 +130,42 @@ Before running the project, install:
 
 ### 1. Clone the repository
 
-```bash
 git clone <repository-url>
 cd <repository-folder>
-```
 
 ### 2. Install backend dependencies
-
-```bash
 pipenv install --dev
-```
 
 ### 3. Configure environment variables
 
 Set a secure secret key:
-
-```bash
 export SECRET_KEY="your-long-random-secret"
-```
 
 Optionally configure a different database:
-
-```bash
 export DATABASE_URL="your-database-connection-url"
-```
 
 By default, the application uses SQLite with a database named `shifts.db` in the instance directory.
 
 ### 4. Set up the database
 
 If the migration repository has not already been initialized:
-
-```bash
 pipenv run flask --app app db init
-```
 
 Create and apply the initial migration:
 
-```bash
 pipenv run flask --app app db migrate -m "Create users, notes, and shifts"
 pipenv run flask --app app db upgrade
-```
 
 For future model changes:
 
-```bash
 pipenv run flask --app app db migrate -m "Describe the schema change"
 pipenv run flask --app app db upgrade
-```
 
 Do not run `db init` again if the migrations directory already exists.
 
 ### 5. Start the backend
 
-```bash
 pipenv run python app.py
-```
 
 The backend runs on port `5555`.
 
@@ -195,21 +173,21 @@ The backend runs on port `5555`.
 
 Open another terminal:
 
-```bash
+
 cd client-with-jwt
 npm install
 npm start
-```
+
 
 ### 7. Start the session-based frontend
 
 Open another terminal:
 
-```bash
+
 cd client-with-sessions
 npm install
 npm start
-```
+
 
 Check the frontend proxy configuration against the backend port before running either client. The JWT client is configured for port `5555`, while the session client currently specifies port `5000`.
 
