@@ -1,28 +1,62 @@
 # Productivity API
 
-A Flask API for a productivity app. It provides session-based authentication, JWT login responses with a JWT-protected current-user endpoint, a user-owned notes resource, and shift clock-in/clock-out endpoints.
+A Flask API for a productivity app. It provides session-based authentication, JWT login responses with a JWT-protected current-user endpoint, a user-owned notes resource, and paginated shift CRUD with clock-in/clock-out workflows.
 
 ## Team contributions
 
 | Assignment | Responsibility | Contributor |
 |---|---|---|
-| Person A | Project setup and database foundation | |
-| Person B | Authentication | |
-| Person C | Shift CRUD and pagination | |
+| Person A | Project setup and database foundation | **Victor Kuria** |
+| Person B | Authentication | **Faith Nderitu** |
+| Person C | Shift CRUD and pagination | **Humphrey** |
 | Person D | Shift clock-in/clock-out logic and ownership security | **Lerionka Olentiki** |
-| Person E | Testing, documentation, and final delivery | |
+| Person E | Testing, documentation, and final delivery | **Timothy Koigi and Anord** |
 
-### Person D — Lerionka Olentiki
+The descriptions below summarize the responsibilities and delivered work for each assigned workstream.
 
-Implemented the shift clock-in and clock-out workflow in `shift_routes.py` and added the corresponding shift route tests in `tests/test_app.py`.
+### Person A — Victor Kuria: project setup and database foundation
 
-- Added `POST /shifts/clock-in` to create a shift for the user identified by the Flask session.
-- Prevented a user from starting another shift while an active shift (one with no `clock_out`) already exists.
-- Added `PATCH /shifts/<shift_id>/clock-out` to close an active shift for its owner.
-- Scoped shift lookup by both shift ID and current session user ID, so a user cannot clock out another user's shift; non-owned or missing shifts return `404`.
-- Rejected attempts to clock out a shift that is already closed.
-- Ensured the clock-out timestamp is later than the clock-in timestamp, returning a validation error if the rule is not met.
-- Added tests for authentication requirements, successful clock-in/out, duplicate clock-in prevention, ownership isolation, and rejecting an already closed shift.
+- Set up the Flask application structure, configuration, and shared SQLAlchemy database extension.
+- Defined the database models for users, notes, and shifts, including keys, indexes, and relationships used by the API.
+- Configured Flask-Migrate and added the initial Alembic migration so a new database can be created consistently with `db upgrade`.
+- Prepared the Faker-based seed utility for repeatable local demonstration data.
+
+### Person B — Faith Nderitu: authentication
+
+- Implemented signup and login, including validation, bcrypt password hashing, and duplicate-username handling.
+- Added session creation and the session-check and logout endpoints used by the session-based client.
+- Added JWT creation at signup/login and `GET /me` to verify a JWT and return its user.
+- Kept authentication errors in JSON responses and ensured passwords are never returned by user serialization.
+
+### Person C — Humphrey: shift CRUD and pagination
+
+- Implemented the shift resource endpoints: list with pagination, create, retrieve one, update, and delete.
+- Restricted shift reads and mutations to the current session user; other users' shifts are returned as not found.
+- Used the shift schemas for timestamp validation and response serialization, and applied the rules that clock-out follows clock-in and a user has at most one active shift.
+- Added support for page/per-page controls, including defaults and a maximum page size.
+
+### Person D — Lerionkaolentiki: clock-in/out workflow and ownership security
+
+- Implemented `POST /shifts/clock-in` (also available as `POST /shifts`) to record server-side UTC clock-in time.
+- Prevented a user from starting another shift while they already have an active shift.
+- Implemented `PATCH /shifts/<shift_id>/clock-out` to close the active shift using server-side UTC time.
+- Scoped the clock-out lookup by both shift ID and session user ID; missing or non-owned shifts return `404`.
+- Rejected clocking out an already closed shift and enforced clock-out later than clock-in.
+- Added focused tests for clock-in/out, duplicate clock-in prevention, authentication, and ownership boundaries.
+
+### Person E — Timothy Koigi and Anord: testing, documentation, and final delivery
+
+**Timothy Koigi — testing and integration**
+
+- Expanded pytest coverage for authentication, validation, shift CRUD, pagination, clock-in/out rules, and user ownership isolation.
+- Ran the backend test suite and checked that a user cannot read, update, or delete another user's shift.
+- Verified the API's migration and seed workflow on a fresh local database.
+
+**Anord — documentation and delivery**
+
+- Updated this README with setup steps, migration and seed commands, authentication behavior, endpoint details, example requests, and project layout.
+- Organized the hand-off information so the frontend team can identify the required session cookie and API paths.
+- Prepared the project for final integration and submission, including a final check of the documented workflow.
 
 ## Features
 
@@ -30,7 +64,7 @@ Implemented the shift clock-in and clock-out workflow in `shift_routes.py` and a
 - Session cookies for the session-based client.
 - JWTs returned at login and signup, with `GET /me` for JWT verification.
 - Notes CRUD and pagination, scoped to the logged-in session user.
-- Shift clock-in and clock-out with ownership checks and duplicate-clock-in protection.
+- Paginated shift CRUD and clock-in/clock-out with ownership checks and duplicate-clock-in protection.
 
 ## Requirements
 
@@ -60,30 +94,42 @@ Run the API on port `5555`:
 pipenv run python app.py
 ```
 
-## Database migrations
+## Database migrations and seed data
 
-The project uses Flask-Migrate. Initialize the migration repository once, then create and apply the initial migration:
+The initial Flask-Migrate revision is included in `migrations/versions`. Apply it to create the database tables:
 
 ```bash
-pipenv run flask --app app db init
-pipenv run flask --app app db migrate -m "Create users, notes, and shifts"
 pipenv run flask --app app db upgrade
 ```
 
-After model changes, create and apply a new migration:
+After model changes, generate and apply a new migration:
 
 ```bash
 pipenv run flask --app app db migrate -m "Describe the schema change"
 pipenv run flask --app app db upgrade
 ```
 
-Do not run `db init` again after the migrations directory has been created. The repository currently does not include a seed script or predefined user data; create users through `POST /signup`.
+Run the Faker seed script after applying migrations:
+
+```bash
+pipenv run python seed.py
+```
+
+The script creates up to three demo users and two completed shifts for each. It is safe to rerun: existing `demo_worker_1` through `demo_worker_3` users are left unchanged. Newly generated passwords are printed once when each demo user is created; save them if you need to log in. The script does not delete or overwrite existing records.
 
 ## Authentication
 
 The API supports session cookies and issues JWTs, but protected resource routes currently authenticate using the Flask session cookie. The JWT is currently accepted by `GET /me`; it is not yet a substitute for the session on the notes or shifts endpoints.
 
 For browser clients, send JSON requests with `Content-Type: application/json`. Keep the session cookie between requests.
+
+| Method and path | Authentication | Description |
+|---|---|---|
+| `POST /signup` | Public | Register a user, start a session, and return a JWT |
+| `POST /login` | Public | Authenticate a user, start a session, and return a JWT |
+| `GET /check_session` | Session cookie | Return the current session user or `{}` |
+| `DELETE /logout` | Session cookie if logged in | Clear the current session |
+| `GET /me` | JWT bearer token | Validate the token and return its user |
 
 ### `POST /signup`
 
@@ -116,7 +162,7 @@ Success response (`201 Created`):
 
 ### `POST /login`
 
-Authenticates an existing user and starts a session. The response has the same fields as signup; successful login returns `200 OK`. Invalid credentials return `401 Unauthorized`.
+Authenticates an existing user and starts a session. The response has the same fields as signup; successful login returns `200 OK`. Invalid credentials return `401 Unauthorized`; malformed request bodies or missing credentials return `400 Bad Request`.
 
 Request:
 
@@ -149,14 +195,55 @@ Clears the current session and returns `{}` with `200 OK`.
 Verifies a JWT and returns its user. Send the token in the `Authorization` header:
 
 ```http
-Authorization: Bearer <JWT>
+Authorization: Bearer YOUR_JWT_TOKEN
 ```
 
 Returns the user object with `200 OK`, or an authentication error with `401 Unauthorized`.
 
+### Authentication request examples
+
+Signup creates the session cookie and returns a JWT:
+
+```bash
+curl -i -c cookies.txt -H "Content-Type: application/json" \
+  -d '{"username":"alex","password":"example-password","password_confirmation":"example-password"}' \
+  http://localhost:5555/signup
+```
+
+Login uses the same cookie jar:
+
+```bash
+curl -i -c cookies.txt -b cookies.txt -H "Content-Type: application/json" \
+  -d '{"username":"alex","password":"example-password"}' \
+  http://localhost:5555/login
+```
+
+Use the returned token to verify JWT authentication:
+
+```bash
+curl -i -H "Authorization: Bearer YOUR_JWT_TOKEN" http://localhost:5555/me
+```
+
+`cookies.txt` contains an authentication cookie; keep it private and remove it when finished.
+
+Check or clear the session with:
+
+```bash
+curl -i -b cookies.txt http://localhost:5555/check_session
+curl -i -X DELETE -b cookies.txt http://localhost:5555/logout
+```
+
 ## Notes
 
 All notes endpoints require a logged-in session. Each query is scoped to the current user; a user cannot read, update, or delete another user's note.
+
+| Method and path | Description |
+|---|---|
+| `GET /notes?page=1&per_page=10` | Paginated list of the current user's notes |
+| `POST /notes` | Create a note |
+| `GET /notes/<note_id>` | Get one of the current user's notes |
+| `PATCH /notes/<note_id>` | Update a note's title and/or content |
+| `DELETE /notes/<note_id>` | Delete one of the current user's notes |
 
 ### `GET /notes`
 
@@ -201,6 +288,10 @@ Returns the created note with `201 Created`.
 
 Returns one of the current user's notes. Returns `404 Not Found` if it does not exist or belongs to another user.
 
+```bash
+curl -i -b cookies.txt http://localhost:5555/notes/1
+```
+
 ### `PATCH /notes/<note_id>`
 
 Updates the supplied `title` and/or `content` fields. The title cannot be blank.
@@ -213,35 +304,110 @@ Updates the supplied `title` and/or `content` fields. The title cannot be blank.
 
 Returns the updated note with `200 OK`.
 
+```bash
+curl -i -X PATCH -b cookies.txt -H "Content-Type: application/json" \
+  -d '{"title":"Updated plan"}' http://localhost:5555/notes/1
+```
+
 ### `DELETE /notes/<note_id>`
 
 Deletes one of the current user's notes and returns `{}` with `200 OK`. Returns `404 Not Found` for missing notes or notes owned by another user.
 
+Example create request:
+
+```bash
+curl -i -b cookies.txt -H "Content-Type: application/json" \
+  -d '{"title":"Weekly plan","content":"Finish tasks before Friday."}' \
+  http://localhost:5555/notes
+```
+
+Delete example:
+
+```bash
+curl -i -X DELETE -b cookies.txt http://localhost:5555/notes/1
+```
+
 ## Shifts
 
-Shift endpoints require a logged-in session and always filter by the current session user's ID.
+Every shift endpoint requires a logged-in **Flask session cookie** and scopes the operation to that session's user ID. JWTs are issued by the auth endpoints, but JWT-only requests do not authenticate notes or shifts.
 
-### `POST /shifts/clock-in`
+| Method and path | Description |
+|---|---|
+| `GET /shifts?page=1&per_page=10` | Paginated list of the current user's shifts |
+| `POST /shifts` | Create an active shift (clock in) |
+| `POST /shifts/clock-in` | Alias for creating an active shift |
+| `GET /shifts/<shift_id>` | Get one of the current user's shifts |
+| `PATCH /shifts/<shift_id>` | Update `clock_in` and/or `clock_out` timestamps |
+| `DELETE /shifts/<shift_id>` | Delete one of the current user's shifts |
+| `PATCH /shifts/<shift_id>/clock-out` | Close an active shift using server time |
 
-Creates a shift with the current UTC time as `clock_in` and `clock_out` set to `null`. Returns `201 Created`. If the user already has an active shift, returns `400 Bad Request`.
+### `GET /shifts`
 
-Example response:
+Lists only the current user's shifts, newest first. `page` defaults to `1`; `per_page` defaults to `10` and is limited to a maximum of `100`. Invalid or out-of-range values are clamped to supported values. Pages beyond the final page return an empty `shifts` list.
+
+```bash
+curl -i -b cookies.txt \
+  "http://localhost:5555/shifts?page=1&per_page=10"
+```
+
+Response:
 
 ```json
 {
-  "id": 1,
-  "clock_in": "2026-10-31T08:30:00+00:00",
-  "clock_out": null
+  "page": 1,
+  "per_page": 10,
+  "total": 1,
+  "shifts": [
+    {
+      "id": 1,
+      "clock_in": "2026-10-31T08:30:00+00:00",
+      "clock_out": null
+    }
+  ]
 }
+```
+
+### `POST /shifts` and `POST /shifts/clock-in`
+
+Both paths create a shift with the current UTC time as `clock_in` and `clock_out` set to `null`; do not provide timestamps in the request. Returns `201 Created`. If the user already has an active shift, returns `400 Bad Request`.
+
+```bash
+curl -i -X POST -b cookies.txt http://localhost:5555/shifts/clock-in
+```
+
+### `GET /shifts/<shift_id>`
+
+Returns the requested shift if it belongs to the current user. Missing and non-owned shifts return `404 Not Found`.
+
+```bash
+curl -i -b cookies.txt http://localhost:5555/shifts/1
+```
+
+### `PATCH /shifts/<shift_id>`
+
+Updates one or both timestamps. Values must be ISO 8601; timestamps without an offset are interpreted as UTC. Unknown fields, malformed values, empty payloads, and clock-out times not later than clock-in return `400 Bad Request`. `clock_out: null` reopens a shift only if the user has no other active shift.
+
+```bash
+curl -i -X PATCH -b cookies.txt -H "Content-Type: application/json" \
+  -d '{"clock_in":"2026-10-31T08:30:00Z","clock_out":"2026-10-31T16:30:00Z"}' \
+  http://localhost:5555/shifts/1
 ```
 
 ### `PATCH /shifts/<shift_id>/clock-out`
 
 Closes the current user's active shift using the current UTC time. Returns the updated shift with `200 OK`. Returns `404 Not Found` if the shift does not exist or belongs to another user, and `400 Bad Request` if it is already closed.
 
-### Shift response and updates
+```bash
+curl -i -X PATCH -b cookies.txt http://localhost:5555/shifts/1/clock-out
+```
 
-Shift timestamps are returned as ISO 8601 UTC values. `PATCH /shifts/<shift_id>` accepts `clock_in` and/or `clock_out` as ISO 8601 timestamps; `clock_out` may be `null` to reopen a shift, subject to the one-active-shift rule. Unknown fields and invalid timestamps are rejected with `400 Bad Request`. Clock-out must be later than clock-in.
+### `DELETE /shifts/<shift_id>`
+
+Deletes one of the current user's shifts and returns `{}` with `200 OK`. A missing or non-owned shift returns `404 Not Found`.
+
+```bash
+curl -i -X DELETE -b cookies.txt http://localhost:5555/shifts/1
+```
 
 ## Error responses
 
@@ -263,7 +429,7 @@ Run the test suite with:
 pipenv run pytest
 ```
 
-The automated tests cover signup and validation, password hashing, login/logout, session and JWT checks, and shift model and route behavior including authentication requirements and ownership. Notes do not yet have automated route tests.
+Automated tests are organized in `tests/test_app.py` (shift endpoints, schemas, auth flows, and seed behavior), `tests/test_auth.py` (authentication), and `tests/test_notes.py` (notes routes). Run `pipenv run pytest` to execute all of them.
 
 ## Project layout
 
@@ -272,5 +438,8 @@ The automated tests cover signup and validation, password hashing, login/logout,
 - `models.py` — database, user, note, and shift models.
 - `auth_routes.py` — signup, login, session, logout, and JWT `/me` routes.
 - `note_routes.py` — protected notes CRUD and pagination.
-- `shift_routes.py` — protected shift clock-in and clock-out.
+- `shift_routes.py` — protected shift CRUD, pagination, and clock-in/clock-out.
+- `shift_schemas.py` — shift validation and serialization schemas.
+- `seed.py` — creates sample users and shifts for local development.
+- `migrations/` — tracked Alembic migration history.
 - `tests/` — pytest tests.

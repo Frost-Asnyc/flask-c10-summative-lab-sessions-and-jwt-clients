@@ -1,0 +1,58 @@
+from datetime import datetime, timedelta, timezone
+
+from faker import Faker
+from flask_bcrypt import Bcrypt
+
+from app import create_app
+from models import Shift, User, db
+
+
+fake = Faker()
+bcrypt = Bcrypt()
+
+
+def seed_database(user_count=3):
+    created_credentials = []
+    now = datetime.now(timezone.utc)
+
+    for index in range(1, user_count + 1):
+        username = f"demo_worker_{index}"
+        user = User.query.filter_by(username=username).first()
+        if user is None:
+            password = fake.password(length=16)
+            user = User(
+                username=username,
+                password_hash=bcrypt.generate_password_hash(password).decode("utf-8"),
+            )
+            db.session.add(user)
+            db.session.flush()
+            created_credentials.append((username, password))
+
+            for days_ago in (2, 1):
+                clock_in = now - timedelta(
+                    days=days_ago,
+                    hours=fake.random_int(min=1, max=8),
+                )
+                db.session.add(
+                    Shift(
+                        user_id=user.id,
+                        clock_in=clock_in,
+                        clock_out=clock_in + timedelta(hours=8),
+                    )
+                )
+
+    db.session.commit()
+    return created_credentials
+
+
+if __name__ == "__main__":
+    app = create_app()
+    with app.app_context():
+        credentials = seed_database()
+
+    if credentials:
+        print("Created demo users (save these generated passwords):")
+        for username, password in credentials:
+            print(f"{username}: {password}")
+    else:
+        print("Demo users already exist; no seed data was added.")

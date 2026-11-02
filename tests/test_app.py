@@ -5,6 +5,7 @@ import pytest
 from app import create_app
 from auth_routes import bcrypt
 from models import Shift, User, db
+from seed import seed_database
 
 
 def create_test_app():
@@ -116,6 +117,30 @@ def test_clock_in_rejects_a_second_active_shift_for_the_same_user():
 
     with app.app_context():
         assert Shift.query.count() == 1
+        db.drop_all()
+
+
+def test_clock_in_rejects_client_supplied_timestamps():
+    app = create_test_app()
+    with app.app_context():
+        db.create_all()
+
+    client = app.test_client()
+    with client.session_transaction() as user_session:
+        user_session["user_id"] = 12
+
+    response = client.post(
+        "/shifts/clock-in",
+        json={"clock_in": "2026-10-31T08:30:00Z"},
+    )
+
+    assert response.status_code == 400
+    assert response.json == {
+        "errors": ["Clock-in timestamps are set by the server"]
+    }
+
+    with app.app_context():
+        assert Shift.query.count() == 0
         db.drop_all()
 
 
@@ -241,6 +266,63 @@ def test_list_shifts_returns_only_the_session_users_shifts_with_pagination():
         db.drop_all()
 
 
+def test_list_shifts_defaults_and_caps_page_size():
+    app = create_test_app()
+    with app.app_context():
+        db.create_all()
+        db.session.add_all(
+            [
+                Shift(user_id=12, clock_in=datetime(2026, 10, 31, 8, 30))
+                for _ in range(105)
+            ]
+        )
+        db.session.commit()
+
+    client = app.test_client()
+    with client.session_transaction() as user_session:
+        user_session["user_id"] = 12
+
+    default_response = client.get("/shifts?page=invalid&per_page=invalid")
+    assert default_response.status_code == 200
+    assert default_response.json["page"] == 1
+    assert default_response.json["per_page"] == 10
+    assert len(default_response.json["shifts"]) == 10
+
+    capped_response = client.get("/shifts?page=0&per_page=101")
+    assert capped_response.status_code == 200
+    assert capped_response.json["page"] == 1
+    assert capped_response.json["per_page"] == 100
+    assert capped_response.json["total"] == 105
+    assert len(capped_response.json["shifts"]) == 100
+
+    with app.app_context():
+        db.drop_all()
+
+
+def test_list_shifts_returns_empty_list_for_page_past_end():
+    app = create_test_app()
+    with app.app_context():
+        db.create_all()
+        db.session.add(
+            Shift(user_id=12, clock_in=datetime(2026, 10, 31, 8, 30))
+        )
+        db.session.commit()
+
+    client = app.test_client()
+    with client.session_transaction() as user_session:
+        user_session["user_id"] = 12
+
+    response = client.get("/shifts?page=5&per_page=1")
+
+    assert response.status_code == 200
+    assert response.json["page"] == 5
+    assert response.json["total"] == 1
+    assert response.json["shifts"] == []
+
+    with app.app_context():
+        db.drop_all()
+
+
 def test_get_shift_does_not_expose_another_users_shift():
     app = create_test_app()
     with app.app_context():
@@ -258,6 +340,36 @@ def test_get_shift_does_not_expose_another_users_shift():
 
     assert response.status_code == 404
     assert response.json == {"errors": ["Shift not found"]}
+
+    with app.app_context():
+        db.drop_all()
+
+
+def test_get_shift_returns_owned_shift():
+    app = create_test_app()
+    with app.app_context():
+        db.create_all()
+        shift = Shift(
+            user_id=12,
+            clock_in=datetime(2026, 10, 31, 8, 30),
+            clock_out=datetime(2026, 10, 31, 16, 30),
+        )
+        db.session.add(shift)
+        db.session.commit()
+        shift_id = shift.id
+
+    client = app.test_client()
+    with client.session_transaction() as user_session:
+        user_session["user_id"] = 12
+
+    response = client.get(f"/shifts/{shift_id}")
+
+    assert response.status_code == 200
+    assert response.json == {
+        "id": shift_id,
+        "clock_in": "2026-10-31T08:30:00+00:00",
+        "clock_out": "2026-10-31T16:30:00+00:00",
+    }
 
     with app.app_context():
         db.drop_all()
@@ -355,6 +467,72 @@ def test_update_shift_rejects_invalid_timestamps_and_unknown_fields():
         saved_shift = db.session.get(Shift, shift_id)
         assert saved_shift.user_id == 12
         assert saved_shift.clock_in == datetime(2026, 10, 31, 8, 30)
+        db.drop_all()
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {},
+        {"clock_in": "not-a-date"},
+        {"clock_out": 123},
+        ["not", "an", "object"],
+    ],
+)
+def test_update_shift_rejects_empty_or_malformed_payloads(body):
+    app = create_test_app()
+    with app.app_context():
+        db.create_all()
+        shift = Shift(user_id=12, clock_in=datetime(2026, 10, 31, 8, 30))
+        db.session.add(shift)
+        db.session.commit()
+        shift_id = shift.id
+
+    client = app.test_client()
+    with client.session_transaction() as user_session:
+        user_session["user_id"] = 12
+
+    response = client.patch(f"/shifts/{shift_id}", json=body)
+
+    assert response.status_code == 400
+    assert response.json["errors"]
+
+    with app.app_context():
+        saved_shift = db.session.get(Shift, shift_id)
+        assert saved_shift.clock_in == datetime(2026, 10, 31, 8, 30)
+        assert saved_shift.clock_out is None
+        db.drop_all()
+
+
+def test_update_shift_cannot_create_a_second_active_shift():
+    app = create_test_app()
+    with app.app_context():
+        db.create_all()
+        active_shift = Shift(user_id=12, clock_in=datetime(2026, 10, 31, 8, 30))
+        closed_shift = Shift(
+            user_id=12,
+            clock_in=datetime(2026, 10, 30, 8, 30),
+            clock_out=datetime(2026, 10, 30, 16, 30),
+        )
+        db.session.add_all([active_shift, closed_shift])
+        db.session.commit()
+        closed_shift_id = closed_shift.id
+
+    client = app.test_client()
+    with client.session_transaction() as user_session:
+        user_session["user_id"] = 12
+
+    response = client.patch(
+        f"/shifts/{closed_shift_id}",
+        json={"clock_out": None},
+    )
+
+    assert response.status_code == 400
+    assert response.json == {"errors": ["You are already clocked in"]}
+
+    with app.app_context():
+        saved_shift = db.session.get(Shift, closed_shift_id)
+        assert saved_shift.clock_out == datetime(2026, 10, 30, 16, 30)
         db.drop_all()
 
 
@@ -648,4 +826,27 @@ def test_me_rejects_missing_or_invalid_jwt():
     assert invalid_token.json == {"errors": ["Authentication required"]}
 
     with app.app_context():
+        db.drop_all()
+
+
+def test_seed_database_creates_demo_users_and_shifts_once():
+    app = create_test_app()
+    with app.app_context():
+        db.create_all()
+
+        credentials = seed_database(user_count=2)
+        assert [username for username, _ in credentials] == [
+            "demo_worker_1",
+            "demo_worker_2",
+        ]
+        assert User.query.count() == 2
+        assert Shift.query.count() == 4
+        for username, password in credentials:
+            user = User.query.filter_by(username=username).one()
+            assert bcrypt.check_password_hash(user.password_hash, password)
+
+        assert seed_database(user_count=2) == []
+        assert User.query.count() == 2
+        assert Shift.query.count() == 4
+
         db.drop_all()
