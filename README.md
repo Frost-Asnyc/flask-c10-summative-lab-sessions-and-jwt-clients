@@ -23,23 +23,12 @@ The project includes two React frontend clients: one designed for JWT authentica
 
 | Assignment | Responsibility | Contributor |
 |---|---|---|
-| Person A | Project setup and database foundation | |
-| Person B | Authentication | |
-| Person C | Shift CRUD and pagination | |
+| Person A | Project setup and database foundation | Victor Kingara |
+| Person B | Authentication | Faith Nderitu |
+| Person C | Shift CRUD and pagination | Humphrey Nandwa|
 | Person D | Shift clock-in/clock-out logic and ownership security | Lerionka Olentiki |
-| Person E | Testing, documentation, and final delivery | |
-
-### Person D — Lerionka Olentiki
-
-Implemented the shift clock-in and clock-out workflow in `shift_routes.py` and added corresponding tests.
-
-- Added `POST /shifts/clock-in`.
-- Prevented users from starting another shift while they have an active shift.
-- Added `PATCH /shifts/<shift_id>/clock-out`.
-- Restricted shift operations to their owners.
-- Prevented clocking out a shift that is already closed.
-- Validated that the clock-out timestamp is later than the clock-in timestamp.
-- Added tests for authentication, clock-in, clock-out, duplicate clock-ins, and ownership protection.
+| Person E | Testing | Timothy Koigi |
+| Person F | Documentation | Anord Wakaba |
 
 ## Features
 
