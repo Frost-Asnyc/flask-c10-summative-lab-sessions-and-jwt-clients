@@ -94,6 +94,26 @@ Run the API on port `5555`:
 pipenv run python app.py
 ```
 
+### Run a frontend client
+
+The session client is configured to proxy API requests to the Flask server on port `5555`. From a second terminal, start it with:
+
+```bash
+cd client-with-sessions
+npm install
+npm start
+```
+
+Open `http://localhost:4000`, choose **Sign Up** to create an account, then use those credentials to log in. The JWT client is an alternative auth-flow example:
+
+```bash
+cd client-with-jwt
+npm install
+npm start
+```
+
+Both provided clients demonstrate authentication only. After login they show a placeholder page; the assignment does not provide a shift-tracker UI, so shifts are currently used through the documented API endpoints.
+
 ## Database migrations and seed data
 
 The initial Flask-Migrate revision is included in `migrations/versions`. Apply it to create the database tables:
