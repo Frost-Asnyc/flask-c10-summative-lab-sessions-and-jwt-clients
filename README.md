@@ -43,6 +43,8 @@ Implemented the shift clock-in and clock-out workflow in `shift_routes.py` and a
 
 ## Features
 
+## Features
+
 The Productivity API provides the following features:
 
 - **User registration:** Allows new users to create accounts.
