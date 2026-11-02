@@ -20,4 +20,4 @@ PyJWT = "==2.10.1"
 pytest = "==7.2.0"
 
 [requires]
-python_version = "3.8"
+python_version = "3.12.3"
