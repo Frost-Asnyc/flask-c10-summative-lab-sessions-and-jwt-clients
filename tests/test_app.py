@@ -1,5 +1,7 @@
 from datetime import datetime
 
+import pytest
+
 from app import create_app
 from models import Shift, db
 
@@ -12,6 +14,32 @@ def create_test_app():
             "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
         }
     )
+
+
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("GET", "/shifts"),
+        ("POST", "/shifts"),
+        ("POST", "/shifts/clock-in"),
+        ("GET", "/shifts/1"),
+        ("PATCH", "/shifts/1"),
+        ("DELETE", "/shifts/1"),
+        ("PATCH", "/shifts/1/clock-out"),
+    ],
+)
+def test_all_shift_routes_require_an_authenticated_session(method, path):
+    app = create_test_app()
+    with app.app_context():
+        db.create_all()
+
+    response = app.test_client().open(path, method=method)
+
+    assert response.status_code == 401
+    assert response.json == {"errors": ["Authentication required"]}
+
+    with app.app_context():
+        db.drop_all()
 
 
 def test_shift_model_uses_the_shared_person_c_fields():
