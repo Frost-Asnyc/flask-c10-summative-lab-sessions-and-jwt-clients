@@ -1,9 +1,7 @@
 import random
 from datetime import datetime, timedelta, timezone
-
 from faker import Faker
 from flask_bcrypt import Bcrypt
-
 from app import create_app
 from models import Note, Shift, User, db
 
@@ -33,7 +31,7 @@ with app.app_context():
     now = datetime.now(timezone.utc)
 
     for user in users:
-        # 15 completed shifts so pagination has something to page through
+        # fifteen completed shifts so pagination has something to page through
         for days_ago in range(1, 16):
             start = (now - timedelta(days=days_ago)).replace(
                 hour=random.randint(6, 10), minute=random.choice([0, 15, 30, 45]),
@@ -49,7 +47,7 @@ with app.app_context():
                 user_id=user.id,
             ))
 
-    # bob is currently clocked in, so Person D can test "no double clock-in"
+    # bob is currently clocked in, so Person D can test "no double clock-in" logic
     bob = users[1]
     db.session.add(Shift(user_id=bob.id, clock_in=now - timedelta(hours=2)))
 
