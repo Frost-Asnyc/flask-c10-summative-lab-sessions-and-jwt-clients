@@ -88,6 +88,7 @@ For browser clients, send JSON requests with `Content-Type: application/json`. K
 ### `POST /signup`
 
 Creates a user, hashes their password, starts a session, and returns a JWT.
+Username, password, and password confirmation are required. The username is limited to 80 characters, and the password confirmation must match.
 
 Request:
 
@@ -262,7 +263,7 @@ Run the test suite with:
 pipenv run pytest
 ```
 
-The existing automated tests cover the shift model and clock-in/clock-out behavior, including authentication requirements and shift ownership. Auth and notes currently have not yet been added to the automated test suite.
+The automated tests cover signup and validation, password hashing, login/logout, session and JWT checks, and shift model and route behavior including authentication requirements and ownership. Notes do not yet have automated route tests.
 
 ## Project layout
 
