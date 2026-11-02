@@ -28,7 +28,7 @@ def seed_database(user_count=3):
             db.session.flush()
             created_credentials.append((username, password))
 
-            for days_ago in (2, 1):
+            for days_ago in range(1, 16):
                 clock_in = now - timedelta(
                     days=days_ago,
                     hours=fake.random_int(min=1, max=8),
@@ -40,6 +40,9 @@ def seed_database(user_count=3):
                         clock_out=clock_in + timedelta(hours=8),
                     )
                 )
+
+            if index == 2:
+                db.session.add(Shift(user_id=user.id, clock_in=now - timedelta(hours=2)))
 
     db.session.commit()
     return created_credentials
