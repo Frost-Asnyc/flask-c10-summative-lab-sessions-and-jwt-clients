@@ -43,27 +43,48 @@ Implemented the shift clock-in and clock-out workflow in `shift_routes.py` and a
 
 ## Features
 
-## Features
-
 The Productivity API provides the following features:
 
 - **User registration:** Allows new users to create accounts.
-- **User authentication:** Supports login using passwords stored as bcrypt hashes.
-- **Session management:** Uses session cookies to maintain authenticated users.
-- **JWT authentication:** Returns JSON Web Tokens during signup and login.
-- **Current-user verification:** Provides a protected `GET /me` endpoint for JWT verification.
+- **User login:** Authenticates users using their username and password.
+- **Password security:** Stores passwords as bcrypt hashes instead of plain text.
+- **Session management:** Uses Flask session cookies to maintain authenticated users.
+- **JWT authentication:** Returns a JSON Web Token during signup and login.
+- **Current-user verification:** Provides a JWT-protected `GET /me` endpoint.
 - **Notes management:** Allows authenticated users to create, view, update, and delete their own notes.
 - **Notes pagination:** Supports retrieving notes in pages.
-- **Shift clock-in:** Allows users to record when they start working.
-- **Shift clock-out:** Allows users to record when they finish working.
-- **Ownership security:** Prevents users from accessing another user's notes or shifts.
-- **Automated testing:** Uses pytest to test application functionality.
+- **Shift clock-in:** Records when a user starts a work shift.
+- **Shift clock-out:** Records when a user finishes a work shift.
+- **Ownership protection:** Prevents users from accessing notes or shifts belonging to other users.
+- **Automated testing:** Uses pytest to test authentication, notes, and shift functionality.
 
 ## Technologies Used
 
-The project uses Python and Flask for the backend API, SQLAlchemy for database operations, and React for the frontend clients.
+### Backend
 
-The complete technology list and dependency versions are maintained in the project's `Pipfile` and frontend `package.json` files.
+- **Python:** Main programming language used for the backend.
+- **Flask:** Framework used to build the REST API.
+- **Flask-SQLAlchemy:** Handles database models and database operations.
+- **Flask-Migrate:** Manages database schema migrations.
+- **Flask-Bcrypt:** Hashes and verifies user passwords.
+- **PyJWT:** Creates and verifies JSON Web Tokens.
+- **SQLite:** Default database configuration.
+- **pytest:** Runs automated backend tests.
+
+### Frontend
+
+The project contains two separate React applications:
+
+- `client-with-jwt` — React client designed around JWT authentication.
+- `client-with-sessions` — React client designed around session-based authentication.
+
+Both frontend applications use React 17, React Router, and styled-components.
+
+### Development tools
+
+- **Pipenv:** Manages Python dependencies and the virtual environment.
+- **npm:** Installs and manages frontend dependencies.
+- **Git and GitHub:** Used for version control and team collaboration.
 
 
 ## Requirements
