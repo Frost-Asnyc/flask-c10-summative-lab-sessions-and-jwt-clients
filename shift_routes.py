@@ -1,41 +1,35 @@
 from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, request, session
+from marshmallow import ValidationError
 
 from models import Shift, db
+from shift_schemas import ShiftSchema, ShiftUpdateSchema
 
 
 shift_routes = Blueprint("shift_routes", __name__)
+shift_schema = ShiftSchema()
+shift_update_schema = ShiftUpdateSchema()
 
 
-def serialize_shift(shift):
-    clock_in = shift.clock_in
-    if clock_in.tzinfo is None:
-        clock_in = clock_in.replace(tzinfo=timezone.utc)
-
-    clock_out = shift.clock_out
-    if clock_out is not None and clock_out.tzinfo is None:
-        clock_out = clock_out.replace(tzinfo=timezone.utc)
-
-    return {
-        "id": shift.id,
-        "clock_in": clock_in.isoformat(),
-        "clock_out": clock_out.isoformat() if clock_out is not None else None,
-    }
-
-
-def parse_timestamp(value, field_name):
-    if not isinstance(value, str):
-        raise ValueError(f"{field_name} must be an ISO 8601 timestamp")
-
-    try:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError as error:
-        raise ValueError(f"{field_name} must be an ISO 8601 timestamp") from error
-
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
+def format_validation_errors(messages, field_path=None):
+    errors = []
+    if isinstance(messages, dict):
+        for field, field_messages in messages.items():
+            path = (
+                field_path
+                if field == "_schema"
+                else f"{field_path}.{field}"
+                if field_path
+                else field
+            )
+            errors.extend(format_validation_errors(field_messages, path))
+    elif isinstance(messages, list):
+        for message in messages:
+            errors.extend(format_validation_errors(message, field_path))
+    else:
+        errors.append(f"{field_path}: {messages}" if field_path else str(messages))
+    return errors
 
 
 def get_session_user_id():
@@ -65,7 +59,7 @@ def list_shifts():
                 "page": pagination.page,
                 "per_page": pagination.per_page,
                 "total": pagination.total,
-                "shifts": [serialize_shift(shift) for shift in pagination.items],
+                "shifts": [shift_schema.dump(shift) for shift in pagination.items],
             }
         ),
         200,
@@ -91,7 +85,7 @@ def clock_in():
     db.session.add(shift)
     db.session.commit()
 
-    return jsonify(serialize_shift(shift)), 201
+    return jsonify(shift_schema.dump(shift)), 201
 
 
 @shift_routes.get("/shifts/<int:shift_id>")
@@ -104,7 +98,7 @@ def show_shift(shift_id):
     if shift is None:
         return jsonify({"errors": ["Shift not found"]}), 404
 
-    return jsonify(serialize_shift(shift)), 200
+    return jsonify(shift_schema.dump(shift)), 200
 
 
 @shift_routes.patch("/shifts/<int:shift_id>")
@@ -117,35 +111,25 @@ def update_shift(shift_id):
     if shift is None:
         return jsonify({"errors": ["Shift not found"]}), 404
 
-    data = request.get_json(silent=True)
-    if not isinstance(data, dict) or not data:
+    request_data = request.get_json(silent=True)
+    if not isinstance(request_data, dict) or not request_data:
         return jsonify({"errors": ["A JSON object with shift fields is required"]}), 400
 
-    unsupported_fields = set(data) - {"clock_in", "clock_out"}
-    if unsupported_fields:
-        return jsonify({"errors": ["Only clock_in and clock_out can be updated"]}), 400
-
-    clock_in = shift.clock_in
-    clock_out = shift.clock_out
     try:
-        if "clock_in" in data:
-            clock_in = parse_timestamp(data["clock_in"], "clock_in")
-        if "clock_out" in data:
-            clock_out = (
-                parse_timestamp(data["clock_out"], "clock_out")
-                if data["clock_out"] is not None
-                else None
-            )
-    except ValueError as error:
-        return jsonify({"errors": [str(error)]}), 400
+        data = shift_update_schema.load(request_data)
+        clock_in = data.get("clock_in", shift.clock_in)
+        clock_out = data.get("clock_out", shift.clock_out)
+        candidate = shift_schema.load(
+            {
+                "clock_in": clock_in.isoformat(),
+                "clock_out": clock_out.isoformat() if clock_out is not None else None,
+            }
+        )
+    except ValidationError as error:
+        return jsonify({"errors": format_validation_errors(error.messages)}), 400
 
-    if clock_in.tzinfo is None:
-        clock_in = clock_in.replace(tzinfo=timezone.utc)
-    if clock_out is not None and clock_out.tzinfo is None:
-        clock_out = clock_out.replace(tzinfo=timezone.utc)
-
-    if clock_out is not None and clock_out <= clock_in:
-        return jsonify({"errors": ["Clock-out must be after clock-in"]}), 400
+    clock_in = candidate["clock_in"]
+    clock_out = candidate.get("clock_out")
 
     if clock_out is None:
         active_shift = Shift.query.filter(
@@ -160,7 +144,7 @@ def update_shift(shift_id):
     shift.clock_out = clock_out
     db.session.commit()
 
-    return jsonify(serialize_shift(shift)), 200
+    return jsonify(shift_schema.dump(shift)), 200
 
 
 @shift_routes.delete("/shifts/<int:shift_id>")
@@ -202,4 +186,4 @@ def clock_out(shift_id):
     shift.clock_out = clock_out_time
     db.session.commit()
 
-    return jsonify(serialize_shift(shift)), 200
+    return jsonify(shift_schema.dump(shift)), 200

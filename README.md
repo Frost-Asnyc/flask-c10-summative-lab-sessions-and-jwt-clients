@@ -238,6 +238,10 @@ Example response:
 
 Closes the current user's active shift using the current UTC time. Returns the updated shift with `200 OK`. Returns `404 Not Found` if the shift does not exist or belongs to another user, and `400 Bad Request` if it is already closed.
 
+### Shift response and updates
+
+Shift timestamps are returned as ISO 8601 UTC values. `PATCH /shifts/<shift_id>` accepts `clock_in` and/or `clock_out` as ISO 8601 timestamps; `clock_out` may be `null` to reopen a shift, subject to the one-active-shift rule. Unknown fields and invalid timestamps are rejected with `400 Bad Request`. Clock-out must be later than clock-in.
+
 ## Error responses
 
 Errors use a JSON `errors` array. For example:

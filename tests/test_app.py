@@ -323,6 +323,40 @@ def test_update_shift_validates_timestamps_and_updates_owned_shift():
         db.drop_all()
 
 
+def test_update_shift_rejects_invalid_timestamps_and_unknown_fields():
+    app = create_test_app()
+    with app.app_context():
+        db.create_all()
+        shift = Shift(user_id=12, clock_in=datetime(2026, 10, 31, 8, 30))
+        db.session.add(shift)
+        db.session.commit()
+        shift_id = shift.id
+
+    client = app.test_client()
+    with client.session_transaction() as user_session:
+        user_session["user_id"] = 12
+
+    invalid_timestamp = client.patch(
+        f"/shifts/{shift_id}",
+        json={"clock_in": "not-a-timestamp"},
+    )
+    assert invalid_timestamp.status_code == 400
+    assert any("clock_in" in error for error in invalid_timestamp.json["errors"])
+
+    unknown_field = client.patch(
+        f"/shifts/{shift_id}",
+        json={"user_id": 34},
+    )
+    assert unknown_field.status_code == 400
+    assert any("user_id" in error for error in unknown_field.json["errors"])
+
+    with app.app_context():
+        saved_shift = db.session.get(Shift, shift_id)
+        assert saved_shift.user_id == 12
+        assert saved_shift.clock_in == datetime(2026, 10, 31, 8, 30)
+        db.drop_all()
+
+
 def test_update_shift_cannot_modify_another_users_shift():
     app = create_test_app()
     with app.app_context():
