@@ -1,12 +1,13 @@
-from datetime import datetime
 
+import jwt
 import pytest
 
+from datetime import datetime, timedelta, timezone
 from app import create_app
 from auth_routes import bcrypt
 from models import Shift, User, db
 from seed import seed_database
-
+from shift_routes import format_validation_errors
 
 def create_test_app():
     return create_app(
@@ -98,6 +99,26 @@ def test_clock_in_creates_a_shift_for_the_session_user():
         assert shift.clock_out is None
         db.drop_all()
 
+def test_clock_in_accepts_empty_json_object():
+    app = create_test_app()
+
+    with app.app_context():
+        db.create_all()
+
+    client = app.test_client()
+
+    with client.session_transaction() as user_session:
+        user_session["user_id"] = 12
+
+    response = client.post("/shifts/clock-in", json={})
+
+    assert response.status_code == 201
+    assert response.json["clock_in"] is not None
+    assert response.json["clock_out"] is None
+
+    with app.app_context():
+        assert Shift.query.count() == 1
+        db.drop_all()
 
 def test_clock_in_rejects_a_second_active_shift_for_the_same_user():
     app = create_test_app()
@@ -850,3 +871,271 @@ def test_seed_database_creates_demo_users_and_shifts_once():
         assert Shift.query.count() == 4
 
         db.drop_all()
+
+def test_me_accepts_valid_jwt():
+    app = create_test_app()
+
+    with app.app_context():
+        db.create_all()
+
+        user = User(username="alex", password_hash="hashed-password")
+        db.session.add(user)
+        db.session.commit()
+
+        token = jwt.encode(
+            {"user_id": user.id, "username": user.username},
+            app.config["SECRET_KEY"],
+            algorithm="HS256",
+        )
+
+        user_id = user.id
+
+    client = app.test_client()
+    response = client.get(
+        "/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json == {"id": user_id, "username": "alex"}
+
+    with app.app_context():
+        db.drop_all()
+
+def test_me_accepts_jwt_authorization_prefix():
+    app = create_test_app()
+
+    with app.app_context():
+        db.create_all()
+
+        user = User(username="alex", password_hash="hashed-password")
+        db.session.add(user)
+        db.session.commit()
+
+        token = jwt.encode(
+            {"user_id": user.id, "username": user.username},
+            app.config["SECRET_KEY"],
+            algorithm="HS256",
+        )
+
+        user_id = user.id
+
+    client = app.test_client()
+    response = client.get(
+        "/me",
+        headers={"Authorization": f"JWT {token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json == {"id": user_id, "username": "alex"}
+
+    with app.app_context():
+        db.drop_all()
+
+def test_me_accepts_raw_jwt_token():
+    app = create_test_app()
+
+    with app.app_context():
+        db.create_all()
+
+        user = User(username="alex", password_hash="hashed-password")
+        db.session.add(user)
+        db.session.commit()
+
+        token = jwt.encode(
+            {"user_id": user.id, "username": user.username},
+            app.config["SECRET_KEY"],
+            algorithm="HS256",
+        )
+
+        user_id = user.id
+
+    client = app.test_client()
+    response = client.get(
+        "/me",
+        headers={"Authorization": token},
+    )
+
+    assert response.status_code == 200
+    assert response.json == {"id": user_id, "username": "alex"}
+
+    with app.app_context():
+        db.drop_all()
+
+def test_me_rejects_jwt_signed_with_wrong_secret():
+    app = create_test_app()
+
+    with app.app_context():
+        db.create_all()
+
+        user = User(username="alex", password_hash="hashed-password")
+        db.session.add(user)
+        db.session.commit()
+
+        token = jwt.encode(
+            {"user_id": user.id, "username": user.username},
+            "wrong-secret",
+            algorithm="HS256",
+        )
+
+        db.session.expunge(user)
+        db.drop_all()
+
+    client = app.test_client()
+    response = client.get(
+        "/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 401
+    assert response.json == {"errors": ["Authentication required"]}
+
+def test_me_rejects_jwt_for_nonexistent_user():
+    app = create_test_app()
+
+    with app.app_context():
+        db.create_all()
+
+        token = jwt.encode(
+            {"user_id": 9999, "username": "unknown"},
+            app.config["SECRET_KEY"],
+            algorithm="HS256",
+        )
+
+    client = app.test_client()
+    response = client.get(
+        "/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 401
+    assert response.json == {"errors": ["Authentication required"]}
+
+    with app.app_context():
+        db.drop_all()    
+
+def test_me_rejects_expired_jwt():
+    app = create_test_app()
+
+    with app.app_context():
+        db.create_all()
+
+        user = User(username="alex", password_hash="hashed-password")
+        db.session.add(user)
+        db.session.commit()
+
+        token = jwt.encode(
+            {
+                "user_id": user.id,
+                "username": user.username,
+                "exp": datetime.now(timezone.utc) - timedelta(minutes=1),
+            },
+            app.config["SECRET_KEY"],
+            algorithm="HS256",
+        )
+
+    client = app.test_client()
+    response = client.get(
+        "/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 401
+    assert response.json == {"errors": ["Authentication required"]}
+
+    with app.app_context():
+        db.drop_all()
+
+
+def test_format_validation_errors_flattens_nested_errors():
+    messages = {
+        "clock_in": ["Not a valid datetime."],
+        "clock_out": ["Missing data."],
+    }
+
+    result = format_validation_errors(messages)
+
+    assert result == [
+        "clock_in: Not a valid datetime.",
+        "clock_out: Missing data.",
+    ]
+
+def test_delete_shift_returns_404_for_nonexistent_shift():
+    app = create_test_app()
+
+    with app.app_context():
+        db.create_all()
+
+    client = app.test_client()
+
+    with client.session_transaction() as user_session:
+        user_session["user_id"] = 12
+
+    response = client.delete("/shifts/999")
+
+    assert response.status_code == 404
+    assert response.json == {"errors": ["Shift not found"]}
+
+    with app.app_context():
+        assert Shift.query.count() == 0
+        db.drop_all()
+
+def test_update_shift_can_reopen_a_closed_shift():
+    app = create_test_app()
+
+    with app.app_context():
+        db.create_all()
+        shift = Shift(
+            user_id=12,
+            clock_in=datetime(2026, 10, 31, 8, 30),
+            clock_out=datetime(2026, 10, 31, 16, 30),
+        )
+        db.session.add(shift)
+        db.session.commit()
+        shift_id = shift.id
+
+    client = app.test_client()
+
+    with client.session_transaction() as user_session:
+        user_session["user_id"] = 12
+
+    response = client.patch(
+        f"/shifts/{shift_id}",
+        json={"clock_out": None},
+    )
+
+    assert response.status_code == 200
+    assert response.json["clock_out"] is None
+
+    with app.app_context():
+        saved_shift = db.session.get(Shift, shift_id)
+        assert saved_shift.clock_out is None
+        db.drop_all()        
+
+def test_me_rejects_token_for_deleted_user():
+    app = create_test_app()
+
+    with app.app_context():
+        db.create_all()
+
+        user = User(username="deleted_user", password_hash="hashed-password")
+        db.session.add(user)
+        db.session.commit()
+
+        token = jwt.encode(
+            {"user_id": user.id, "username": user.username},
+            app.config["SECRET_KEY"],
+            algorithm="HS256",
+        )
+
+        db.session.delete(user)
+        db.session.commit()
+
+    client = app.test_client()
+    response = client.get(
+        "/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 401
+    assert response.json == {"errors": ["Authentication required"]}        
