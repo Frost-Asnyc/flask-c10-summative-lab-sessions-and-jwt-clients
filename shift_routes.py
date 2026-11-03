@@ -79,7 +79,7 @@ def clock_in():
 
     active_shift = Shift.query.filter_by(user_id=user_id, clock_out=None).first()
     if active_shift is not None:
-        return jsonify({"errors": ["You are already clocked in"]}), 400
+        return jsonify({"errors": ["You are already clocked in"]}), 409
 
     shift = Shift(user_id=user_id, clock_in=datetime.now(timezone.utc))
     db.session.add(shift)
@@ -138,7 +138,7 @@ def update_shift(shift_id):
             Shift.id != shift.id,
         ).first()
         if active_shift is not None:
-            return jsonify({"errors": ["You are already clocked in"]}), 400
+            return jsonify({"errors": ["You are already clocked in"]}), 409
 
     shift.clock_in = clock_in
     shift.clock_out = clock_out

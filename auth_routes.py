@@ -52,7 +52,7 @@ def get_current_user_from_token():
 def signup():
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
-        return jsonify({"errors": ["Request body must be a JSON object"]}), 400
+        return jsonify({"errors": ["Request body must be a JSON object"]}), 409
 
     username_value = data.get("username")
     username = username_value.strip() if isinstance(username_value, str) else ""
@@ -121,7 +121,7 @@ def check_session():
     user = db.session.get(User, user_id)
     if user is None:
         session.pop("user_id", None)
-        return jsonify({}), 200
+        return jsonify({"errors": ["Authentication required"]}), 401
 
     return jsonify(serialize_user(user)), 200
 

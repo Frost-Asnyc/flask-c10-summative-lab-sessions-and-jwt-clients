@@ -4,7 +4,7 @@ from faker import Faker
 from flask_bcrypt import Bcrypt
 
 from app import create_app
-from models import Shift, User, db
+from models import Note, Shift, User, db
 
 
 fake = Faker()
@@ -28,7 +28,7 @@ def seed_database(user_count=3):
             db.session.flush()
             created_credentials.append((username, password))
 
-            for days_ago in (2, 1):
+            for days_ago in range(1, 16):
                 clock_in = now - timedelta(
                     days=days_ago,
                     hours=fake.random_int(min=1, max=8),
@@ -40,6 +40,13 @@ def seed_database(user_count=3):
                         clock_out=clock_in + timedelta(hours=8),
                     )
                 )
+
+            if index == 2:
+                db.session.add(Note(
+                        title=fake.sentence(nb_words=4).rstrip("."),
+                        content=fake.paragraph(nb_sentences=2),
+                        user_id=user.id,
+                    ))
 
     db.session.commit()
     return created_credentials
