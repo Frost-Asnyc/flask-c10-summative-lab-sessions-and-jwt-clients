@@ -1,0 +1,21 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+flask = "*"
+flask-sqlalchemy = "*"
+werkzeug = "*"
+marshmallow = "*"
+faker = "*"
+flask-migrate = "*"
+flask-restful = "*"
+importlib-metadata = "*"
+importlib-resources = "*"
+flask-bcrypt = "*"
+PyJWT = "*"
+bcrypt = "*"
+
+[dev-packages]
+pytest = "*"
