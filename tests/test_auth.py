@@ -1,4 +1,3 @@
-
 from models import User
 
 
@@ -118,5 +117,5 @@ def test_login_rejects_nonexistent_user(client):
 def test_login_rejects_missing_credentials(client):
     response = client.post("/login", json={})
 
-    assert response.status_code == 401
-    assert "Invalid username or password" in response.get_json()["errors"]
+    assert response.status_code == 400
+    assert "Username is required" in response.get_json()["errors"]

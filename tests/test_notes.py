@@ -2,14 +2,38 @@ from models import User, Note, db
 
 
 def create_user_and_login(client, username="testuser"):
-    client.post(
+    signup = client.post(
         "/signup",
         json={
             "username": username,
             "password": "password123",
+            "password_confirmation": "password123",
             "confirm_password": "password123"
         }
     )
+
+    assert signup.status_code in (200, 201), (
+        f"SIGNUP FAILED: {signup.status_code} {signup.get_json()}"
+    )
+
+    login = client.post(
+        "/login",
+        json={
+            "username": username,
+            "password": "password123"
+        }
+    )
+
+    assert login.status_code in (200, 201), (
+        f"LOGIN FAILED: {login.status_code} {login.get_json()}"
+    )
+
+    # If the app uses JWT, send the token on every later request.
+    # If it uses sessions, the cookie is already kept by the test client.
+    data = login.get_json() or {}
+    token = data.get("access_token") or data.get("token")
+    if token:
+        client.environ_base["HTTP_AUTHORIZATION"] = f"Bearer {token}"
 
 
 def test_get_notes_requires_authentication(client):
@@ -38,7 +62,7 @@ def test_create_note_success(client):
         }
     )
 
-    assert response.status_code == 201
+    assert response.status_code == 201, response.get_json()
     assert response.json["title"] == "My First Note"
     assert response.json["content"] == "This is my note."
 
@@ -51,7 +75,7 @@ def test_create_note_without_title(client):
         json={"content": "A note without a title"}
     )
 
-    assert response.status_code == 400
+    assert response.status_code == 400, response.get_json()
 
 
 def test_get_notes_success(client):
@@ -64,7 +88,7 @@ def test_get_notes_success(client):
 
     response = client.get("/notes")
 
-    assert response.status_code == 200
+    assert response.status_code == 200, response.get_json()
     assert response.json["total"] == 1
     assert len(response.json["notes"]) == 1
 
@@ -76,6 +100,7 @@ def test_get_single_note_success(client):
         "/notes",
         json={"title": "My Note", "content": "Note content"}
     )
+    assert create_response.status_code == 201, create_response.get_json()
 
     note_id = create_response.json["id"]
 
@@ -100,6 +125,7 @@ def test_update_note_success(client):
         "/notes",
         json={"title": "Old Title", "content": "Old content"}
     )
+    assert create_response.status_code == 201, create_response.get_json()
 
     note_id = create_response.json["id"]
 
@@ -123,6 +149,7 @@ def test_update_note_with_blank_title(client):
         "/notes",
         json={"title": "My Note", "content": "Content"}
     )
+    assert create_response.status_code == 201, create_response.get_json()
 
     note_id = create_response.json["id"]
 
@@ -141,6 +168,7 @@ def test_delete_note_success(client):
         "/notes",
         json={"title": "Note to Delete", "content": "Delete me"}
     )
+    assert create_response.status_code == 201, create_response.get_json()
 
     note_id = create_response.json["id"]
 

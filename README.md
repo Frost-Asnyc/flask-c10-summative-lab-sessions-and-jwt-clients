@@ -1,6 +1,6 @@
 # Productivity API
 
-A Flask REST API for a productivity application. The API provides user authentication, personal notes management, and employee shift tracking through clock-in and clock-out operations.
+A Flask API for a productivity app. It provides session-based authentication, JWT login responses with a JWT-protected current-user endpoint, a user-owned notes resource, and paginated shift CRUD with clock-in/clock-out workflows.
 
 ## Project Overview
 
@@ -330,13 +330,27 @@ All shift endpoints require a logged-in session.
 
 Creates a shift using the current UTC time.
 
-Example response:
+Lists only the current user's shifts, newest first. `page` defaults to `1`; `per_page` defaults to `10` and is limited to a maximum of `100`. Invalid or out-of-range values are clamped to supported values. Pages beyond the final page return an empty `shifts` list.
+
+```bash
+curl -i -b cookies.txt \
+  "http://localhost:5555/shifts?page=1&per_page=10"
+```
+
+Response:
 
 ```json
 {
-  "id": 1,
-  "clock_in": "2026-10-31T08:30:00+00:00",
-  "clock_out": null
+  "page": 1,
+  "per_page": 10,
+  "total": 1,
+  "shifts": [
+    {
+      "id": 1,
+      "clock_in": "2026-10-31T08:30:00+00:00",
+      "clock_out": null
+    }
+  ]
 }
 ```
 
