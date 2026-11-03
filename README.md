@@ -23,12 +23,21 @@ The project includes two React frontend clients: one designed for JWT authentica
 
 | Assignment | Responsibility | Contributor |
 |---|---|---|
-| Person A | Project setup and database foundation | Victor Kingara. |
-| Person B | Authentication | Faith Nderitu. |
-| Person C | Shift CRUD and pagination | Humphrey Nandwa. |
-| Person D | Shift clock-in/clock-out logic and ownership security | Lerionka Olentiki. |
-| Person E | Testing | Timothy Koigi. |
-| Person F | Documentation | Anord Wakaba. |
+| Person A | Project setup and database foundation | Victor Kuria |
+| Person B | Authentication | Faith Nderitu |
+| Person C | Shift CRUD and pagination | Humphrey |
+| Person D | Shift clock-in/clock-out logic and ownership security | Lerionka Olentiki |
+| Person E | Testing | Timothy Koigi |
+| Person F | Documentation and final delivery | Anord |
+
+### Contribution details
+
+- **Victor Kuria — setup and database:** established the Flask/SQLAlchemy project foundation, application configuration, database models, and migration setup.
+- **Faith Nderitu — authentication:** implemented signup/login, password hashing, session handling, and JWT issuance and verification.
+- **Humphrey — shift CRUD and pagination:** implemented the user-scoped shift list, create, retrieve, update, and delete operations with pagination.
+- **Lerionka Olentiki — clock-in/out and ownership:** implemented the server-timestamped clock-in/out workflow, active-shift rules, and owner checks.
+- **Timothy Koigi — testing:** expanded automated coverage for authentication, validation, notes, shift routes, pagination, and ownership.
+- **Anord — documentation and delivery:** documented setup, migration and seed usage, authentication behavior, endpoints, and example requests for handoff.
 
 ## Features
 
@@ -94,7 +103,8 @@ productivity-api/
 ├── tests/
 │   ├── test_app.py
 │   ├── test_auth.py
-│   └── test_notes.py
+│   ├── test_notes.py
+│   └── test_shift_schemas.py
 │
 ├── client-with-jwt/
 │   ├── package.json
@@ -113,15 +123,17 @@ productivity-api/
 | `models.py` | Defines database models and relationships. |
 | `auth_routes.py` | Handles registration, login, sessions and JWT verification. |
 | `note_routes.py` | Handles notes operations and pagination. |
-| `shift_routes.py` | Handles shift clock-in and clock-out. |
+| `shift_routes.py` | Handles protected shift CRUD, pagination, and clock-in/out. |
+| `shift_schemas.py` | Validates and serializes shift data. |
+| `seed.py` | Creates demo users and sample notes/shifts. |
 | `migrations/` | Stores database migration files. |
-| `tests/` | Contains automated backend tests. |
+| `tests/` | Contains automated backend tests, including shift schema tests. |
 
 ## Requirements
 
 Before running the project, install:
 
-- Python 3.8 or newer
+- Python 3.10 or newer
 - Pipenv
 - Node.js and npm
 - Git
@@ -134,42 +146,66 @@ git clone <repository-url>
 cd <repository-folder>
 
 ### 2. Install backend dependencies
-pipenv install --dev
+
+Install the exact dependency versions recorded in the lock file:
+
+```bash
+pipenv install --dev --deploy
+```
 
 ### 3. Configure environment variables
 
 Set a secure secret key:
+
+```bash
 export SECRET_KEY="your-long-random-secret"
+```
 
 Optionally configure a different database:
+
+```bash
 export DATABASE_URL="your-database-connection-url"
+```
 
 By default, the application uses SQLite with a database named `shifts.db` in the instance directory.
 
 ### 4. Set up the database
 
-If the migration repository has not already been initialized:
-pipenv run flask --app app db init
+The migration repository and initial migration are already included. Apply all
+tracked migrations to create or update the database:
 
-Create and apply the initial migration:
-
-pipenv run flask --app app db migrate -m "Create users, notes, and shifts"
+```bash
 pipenv run flask --app app db upgrade
+```
 
 For future model changes:
 
+```bash
 pipenv run flask --app app db migrate -m "Describe the schema change"
 pipenv run flask --app app db upgrade
+```
 
-Do not run `db init` again if the migrations directory already exists.
+### 5. Add demo data
 
-### 5. Start the backend
+After applying migrations, populate the database with demo users and sample
+records:
+
+```bash
+pipenv run python seed.py
+```
+
+The script creates up to three demo users, 15 completed shifts for each new
+user, and a sample note. It is safe to rerun: existing demo users are not
+overwritten. Generated passwords are printed only when a user is first created;
+save them if you need to sign in as a demo user.
+
+### 6. Start the backend
 
 pipenv run python app.py
 
 The backend runs on port `5555`.
 
-### 6. Start the JWT frontend
+### 7. Start the JWT frontend
 
 Open another terminal:
 
@@ -177,9 +213,10 @@ Open another terminal:
 cd client-with-jwt
 npm install
 npm start
+```
 
 
-### 7. Start the session-based frontend
+### 8. Start the session-based frontend
 
 Open another terminal:
 
@@ -187,9 +224,10 @@ Open another terminal:
 cd client-with-sessions
 npm install
 npm start
+```
 
 
-Check the frontend proxy configuration against the backend port before running either client. The JWT client is configured for port `5555`, while the session client currently specifies port `5000`.
+Both frontend clients proxy API requests to the Flask backend on port `5555`.
 
 ## Authentication
 
@@ -321,8 +359,12 @@ All shift endpoints require a logged-in session.
 
 | Method | Endpoint | Description |
 |---|---|---|
-| POST | `/shifts/clock-in` | Start a new shift. |
-| PATCH | `/shifts/<shift_id>/clock-out` | Finish an active shift. |
+| GET | `/shifts` | List the current user's shifts, newest first. |
+| POST | `/shifts` or `/shifts/clock-in` | Start a shift using server UTC time. |
+| GET | `/shifts/<shift_id>` | Retrieve one of the current user's shifts. |
+| PATCH | `/shifts/<shift_id>` | Update validated shift timestamps. |
+| DELETE | `/shifts/<shift_id>` | Delete one of the current user's shifts. |
+| PATCH | `/shifts/<shift_id>/clock-out` | Finish an active shift using server UTC time. |
 
 ### Clock In
 
@@ -330,7 +372,10 @@ All shift endpoints require a logged-in session.
 
 Creates a shift using the current UTC time.
 
-Lists only the current user's shifts, newest first. `page` defaults to `1`; `per_page` defaults to `10` and is limited to a maximum of `100`. Invalid or out-of-range values are clamped to supported values. Pages beyond the final page return an empty `shifts` list.
+`GET /shifts` lists only the current user's shifts, newest first. `page`
+defaults to `1`; `per_page` defaults to `10` and is limited to a maximum of
+`100`. Invalid or out-of-range values are clamped to supported values. Pages
+beyond the final page return an empty `shifts` list.
 
 ```bash
 curl -i -b cookies.txt \
@@ -355,6 +400,9 @@ Response:
 ```
 
 A user cannot start another shift while an active shift exists.
+
+An active shift conflict returns `409 Conflict`. Invalid request data returns
+`400 Bad Request`.
 
 ### Clock Out
 
@@ -418,11 +466,9 @@ The test suite includes tests for application, authentication, notes and shift f
 The following are possible improvements for future development:
 
 1. Extend JWT authentication to protected notes and shift endpoints if token-based access is required.
-2. Add a complete shift history endpoint if users need to review previous shifts.
-3. Add further automated tests for edge cases and security.
-4. Improve frontend/backend configuration so both clients use the correct backend port.
-5. Add API documentation using Swagger or OpenAPI.
-6. Add deployment instructions and production environment configuration.
+2. Build shift history and clock-in/clock-out screens in the frontend clients.
+3. Add API documentation using Swagger or OpenAPI.
+4. Add deployment instructions and production environment configuration.
 
 
 ## Team Contribution and Collaboration

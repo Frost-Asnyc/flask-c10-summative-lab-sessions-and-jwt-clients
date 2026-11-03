@@ -51,6 +51,11 @@ def test_shift_model_uses_the_shared_person_c_fields():
     with app.app_context():
         db.create_all()
 
+        assert {
+            foreign_key.target_fullname
+            for foreign_key in Shift.__table__.c.user_id.foreign_keys
+        } == {"user.id"}
+
         shift = Shift(user_id=12, clock_in=datetime(2026, 10, 31, 8, 30))
         db.session.add(shift)
         db.session.commit()
@@ -133,7 +138,7 @@ def test_clock_in_rejects_a_second_active_shift_for_the_same_user():
 
     response = client.post("/shifts/clock-in")
 
-    assert response.status_code == 400
+    assert response.status_code == 409
     assert response.json == {"errors": ["You are already clocked in"]}
 
     with app.app_context():
@@ -548,7 +553,7 @@ def test_update_shift_cannot_create_a_second_active_shift():
         json={"clock_out": None},
     )
 
-    assert response.status_code == 400
+    assert response.status_code == 409
     assert response.json == {"errors": ["You are already clocked in"]}
 
     with app.app_context():
@@ -861,14 +866,14 @@ def test_seed_database_creates_demo_users_and_shifts_once():
             "demo_worker_2",
         ]
         assert User.query.count() == 2
-        assert Shift.query.count() == 4
+        assert Shift.query.count() == 30
         for username, password in credentials:
             user = User.query.filter_by(username=username).one()
             assert bcrypt.check_password_hash(user.password_hash, password)
 
         assert seed_database(user_count=2) == []
         assert User.query.count() == 2
-        assert Shift.query.count() == 4
+        assert Shift.query.count() == 30
 
         db.drop_all()
 

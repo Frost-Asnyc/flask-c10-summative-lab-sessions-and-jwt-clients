@@ -12,6 +12,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
 
     notes = db.relationship("Note", back_populates="user", cascade="all, delete-orphan")
+    shifts = db.relationship("Shift", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<User {self.username}>"
@@ -23,7 +24,12 @@ class Note(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(120), nullable=False)
     content = db.Column(db.Text, nullable=False, default="")
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id", name="fk_shift_user_id_user"),
+        nullable=False,
+        index=True,
+    )
 
     user = db.relationship("User", back_populates="notes")
 
@@ -35,9 +41,11 @@ class Shift(db.Model):
     """A single work shift owned by one user."""
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
     clock_in = db.Column(db.DateTime(timezone=True), nullable=False)
     clock_out = db.Column(db.DateTime(timezone=True), nullable=True)
+
+    user = db.relationship("User", back_populates="shifts")
 
     def __repr__(self):
         return f"<Shift {self.id} user={self.user_id}>"
