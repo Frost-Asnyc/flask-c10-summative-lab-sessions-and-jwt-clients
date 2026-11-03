@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from marshmallow import ValidationError
@@ -111,4 +112,30 @@ def test_utc_datetime_converts_timezone_to_utc():
 
     result = field.deserialize("2026-11-03T11:00:00+03:00")
 
-    assert result == datetime(2026, 11, 3, 8, tzinfo=timezone.utc)        
+    assert result == datetime(2026, 11, 3, 8, tzinfo=timezone.utc)      
+
+def test_utc_datetime_serializes_naive_datetime_as_utc():
+    field = UTCDateTime()
+
+    result = field.serialize(
+        "clock_in",
+        {"clock_in": datetime(2026, 11, 3, 8, 0, 0)},
+    )
+
+    assert result == "2026-11-03T08:00:00+00:00"
+
+
+def test_utc_datetime_serializes_timezone_aware_datetime_as_utc():
+    field = UTCDateTime()
+
+    result = field.serialize(
+        "clock_in",
+        {
+            "clock_in": datetime(
+                2026, 11, 3, 11, 0, 0,
+                tzinfo=timezone(timedelta(hours=3)),
+            )
+        },
+    )
+
+    assert result == "2026-11-03T08:00:00+00:00"      

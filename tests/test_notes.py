@@ -178,3 +178,129 @@ def test_delete_note_success(client):
 
     get_response = client.get(f"/notes/{note_id}")
     assert get_response.status_code == 404
+
+def test_user_cannot_view_another_users_note(client, app):
+    create_user_and_login(client, "user_one")
+
+    create_response = client.post(
+        "/notes",
+        json={"title": "Private Note", "content": "Secret content"}
+    )
+    note_id = create_response.json["id"]
+
+    client.delete("/logout")
+
+    create_user_and_login(client, "user_two")
+
+    response = client.get(f"/notes/{note_id}")
+
+    assert response.status_code == 404
+    assert response.json == {"errors": ["Note not found"]}    
+
+def test_user_cannot_update_another_users_note(client):
+    create_user_and_login(client, "user_one")
+
+    create_response = client.post(
+        "/notes",
+        json={"title": "Private Note", "content": "Original content"}
+    )
+    note_id = create_response.json["id"]
+
+    client.delete("/logout")
+    create_user_and_login(client, "user_two")
+
+    response = client.patch(
+        f"/notes/{note_id}",
+        json={"title": "Hacked Title", "content": "Changed content"}
+    )
+
+    assert response.status_code == 404
+    assert response.json == {"errors": ["Note not found"]}    
+
+def test_user_cannot_delete_another_users_note(client):
+    create_user_and_login(client, "user_one")
+
+    create_response = client.post(
+        "/notes",
+        json={"title": "Private Note", "content": "Do not delete"}
+    )
+    note_id = create_response.json["id"]
+
+    client.delete("/logout")
+    create_user_and_login(client, "user_two")
+
+    response = client.delete(f"/notes/{note_id}")
+
+    assert response.status_code == 404
+    assert response.json == {"errors": ["Note not found"]}    
+
+def test_user_cannot_see_another_users_notes_in_list(client):
+    create_user_and_login(client, "user_one")
+
+    client.post(
+        "/notes",
+        json={"title": "Private Note", "content": "Secret content"}
+    )
+
+    client.delete("/logout")
+    create_user_and_login(client, "user_two")
+
+    response = client.get("/notes")
+
+    assert response.status_code == 200
+    assert response.json["total"] == 0
+    assert response.json["notes"] == []    
+
+def test_update_note_without_title_keeps_existing_title(client):
+    create_user_and_login(client)
+
+    create_response = client.post(
+        "/notes",
+        json={"title": "Original Title", "content": "Old content"}
+    )
+    note_id = create_response.json["id"]
+
+    response = client.patch(
+        f"/notes/{note_id}",
+        json={"content": "Updated content"}
+    )
+
+    assert response.status_code == 200
+    assert response.json["title"] == "Original Title"
+    assert response.json["content"] == "Updated content"    
+
+def test_update_note_with_empty_json_keeps_existing_values(client):
+    create_user_and_login(client)
+
+    create_response = client.post(
+        "/notes",
+        json={"title": "Original Title", "content": "Original content"}
+    )
+    note_id = create_response.json["id"]
+
+    response = client.patch(f"/notes/{note_id}", json={})
+
+    assert response.status_code == 200
+    assert response.json["title"] == "Original Title"
+    assert response.json["content"] == "Original content"    
+
+def test_get_notes_supports_pagination_and_descending_order(client):
+    create_user_and_login(client)
+
+    for i in range(1, 4):
+        response = client.post(
+            "/notes",
+            json={"title": f"Note {i}", "content": f"Content {i}"}
+        )
+        assert response.status_code == 201
+
+    response = client.get("/notes?page=1&per_page=2")
+
+    assert response.status_code == 200
+    assert response.json["total"] == 3
+    assert response.json["page"] == 1
+    assert response.json["per_page"] == 2
+    assert [note["title"] for note in response.json["notes"]] == [
+        "Note 3",
+        "Note 2",
+    ]    
