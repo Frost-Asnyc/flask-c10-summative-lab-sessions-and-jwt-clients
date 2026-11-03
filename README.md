@@ -2,161 +2,246 @@
 
 A Flask API for a productivity app. It provides session-based authentication, JWT login responses with a JWT-protected current-user endpoint, a user-owned notes resource, and paginated shift CRUD with clock-in/clock-out workflows.
 
-## Team contributions
+## Project Overview
+
+The Productivity API helps users manage their productivity activities through a single application. Users can create accounts, log in, manage personal notes, and record their working hours.
+
+The backend is built with Flask and provides protected resources to ensure that users can only access their own information.
+
+The project includes two React frontend clients: one designed for JWT authentication and another designed for session-based authentication.
+
+## Project Objectives
+
+- Provide secure user registration and login.
+- Allow users to create and manage personal notes.
+- Support pagination when retrieving notes.
+- Record employee shift start and finish times.
+- Protect user data through authentication and ownership checks.
+- Provide automated tests for important application functionality.
+
+## Team Contributions
 
 | Assignment | Responsibility | Contributor |
 |---|---|---|
-| Person A | Project setup and database foundation | **Victor Kuria** |
-| Person B | Authentication | **Faith Nderitu** |
-| Person C | Shift CRUD and pagination | **Humphrey** |
-| Person D | Shift clock-in/clock-out logic and ownership security | **Lerionka Olentiki** |
-| Person E | Testing, documentation, and final delivery | **Timothy Koigi and Anord** |
-
-The descriptions below summarize the responsibilities and delivered work for each assigned workstream.
-
-### Person A — Victor Kuria: project setup and database foundation
-
-- Set up the Flask application structure, configuration, and shared SQLAlchemy database extension.
-- Defined the database models for users, notes, and shifts, including keys, indexes, and relationships used by the API.
-- Configured Flask-Migrate and added the initial Alembic migration so a new database can be created consistently with `db upgrade`.
-- Prepared the Faker-based seed utility for repeatable local demonstration data.
-
-### Person B — Faith Nderitu: authentication
-
-- Implemented signup and login, including validation, bcrypt password hashing, and duplicate-username handling.
-- Added session creation and the session-check and logout endpoints used by the session-based client.
-- Added JWT creation at signup/login and `GET /me` to verify a JWT and return its user.
-- Kept authentication errors in JSON responses and ensured passwords are never returned by user serialization.
-
-### Person C — Humphrey: shift CRUD and pagination
-
-- Implemented the shift resource endpoints: list with pagination, create, retrieve one, update, and delete.
-- Restricted shift reads and mutations to the current session user; other users' shifts are returned as not found.
-- Used the shift schemas for timestamp validation and response serialization, and applied the rules that clock-out follows clock-in and a user has at most one active shift.
-- Added support for page/per-page controls, including defaults and a maximum page size.
-
-### Person D — Lerionkaolentiki: clock-in/out workflow and ownership security
-
-- Implemented `POST /shifts/clock-in` (also available as `POST /shifts`) to record server-side UTC clock-in time.
-- Prevented a user from starting another shift while they already have an active shift.
-- Implemented `PATCH /shifts/<shift_id>/clock-out` to close the active shift using server-side UTC time.
-- Scoped the clock-out lookup by both shift ID and session user ID; missing or non-owned shifts return `404`.
-- Rejected clocking out an already closed shift and enforced clock-out later than clock-in.
-- Added focused tests for clock-in/out, duplicate clock-in prevention, authentication, and ownership boundaries.
-
-### Person E — Timothy Koigi and Anord: testing, documentation, and final delivery
-
-**Timothy Koigi — testing and integration**
-
-- Expanded pytest coverage for authentication, validation, shift CRUD, pagination, clock-in/out rules, and user ownership isolation.
-- Ran the backend test suite and checked that a user cannot read, update, or delete another user's shift.
-- Verified the API's migration and seed workflow on a fresh local database.
-
-**Anord — documentation and delivery**
-
-- Updated this README with setup steps, migration and seed commands, authentication behavior, endpoint details, example requests, and project layout.
-- Organized the hand-off information so the frontend team can identify the required session cookie and API paths.
-- Prepared the project for final integration and submission, including a final check of the documented workflow.
+| Person A | Project setup and database foundation | Victor Kingara. |
+| Person B | Authentication | Faith Nderitu. |
+| Person C | Shift CRUD and pagination | Humphrey Nandwa. |
+| Person D | Shift clock-in/clock-out logic and ownership security | Lerionka Olentiki. |
+| Person E | Testing | Timothy Koigi. |
+| Person F | Documentation | Anord Wakaba. |
 
 ## Features
 
-- Sign up and log in with passwords stored as bcrypt hashes.
-- Session cookies for the session-based client.
-- JWTs returned at login and signup, with `GET /me` for JWT verification.
-- Notes CRUD and pagination, scoped to the logged-in session user.
-- Paginated shift CRUD and clock-in/clock-out with ownership checks and duplicate-clock-in protection.
+- User registration and login.
+- Password hashing using bcrypt.
+- Session-based authentication using Flask session cookies.
+- JWT generation during signup and login.
+- JWT-protected current-user endpoint.
+- Personal notes CRUD operations.
+- Notes pagination.
+- Shift clock-in and clock-out.
+- User ownership protection for notes and shifts.
+- Automated backend testing.
+
+## Technologies Used
+
+### Backend
+
+- Python
+- Flask
+- Flask-SQLAlchemy
+- Flask-Migrate
+- Flask-Bcrypt
+- PyJWT
+- SQLite
+- pytest
+
+### Frontend
+
+- React 17
+- React Router
+- styled-components
+- npm
+
+The project contains two frontend applications:
+
+- `client-with-jwt` — JWT-based authentication client.
+- `client-with-sessions` — session-based authentication client.
+
+### Development Tools
+
+- Pipenv
+- Git
+- GitHub
+- VS Code
+
+## Project Structure
+
+productivity-api/
+│
+├── app.py
+├── config.py
+├── models.py
+├── auth_routes.py
+├── note_routes.py
+├── shift_routes.py
+├── Pipfile
+├── Pipfile.lock
+├── pytest.ini
+│
+├── migrations/
+│
+├── tests/
+│   ├── test_app.py
+│   ├── test_auth.py
+│   └── test_notes.py
+│
+├── client-with-jwt/
+│   ├── package.json
+│   └── src/
+│
+└── client-with-sessions/
+    ├── package.json
+    └── src/
+
+### Important Files
+
+| File | Description |
+|---|---|
+| `app.py` | Creates the Flask application and registers routes. |
+| `config.py` | Contains application and database configuration. |
+| `models.py` | Defines database models and relationships. |
+| `auth_routes.py` | Handles registration, login, sessions and JWT verification. |
+| `note_routes.py` | Handles notes operations and pagination. |
+| `shift_routes.py` | Handles shift clock-in and clock-out. |
+| `migrations/` | Stores database migration files. |
+| `tests/` | Contains automated backend tests. |
 
 ## Requirements
 
+Before running the project, install:
+
 - Python 3.8 or newer
 - Pipenv
+- Node.js and npm
 - Git
 
-## Install and run
+## Installation and Setup
 
-From the repository root:
+### 1. Clone the repository
 
-```bash
+git clone <repository-url>
+cd <repository-folder>
+
+### 2. Install backend dependencies
 pipenv install --dev
-```
 
-Set a private secret key before running the app. Do not use the development fallback in a deployed environment.
+### 3. Configure environment variables
 
-```bash
-export SECRET_KEY="replace-with-a-long-random-secret"
-```
+Set a secure secret key:
+export SECRET_KEY="your-long-random-secret"
 
-Optionally set `DATABASE_URL` to use a different SQLAlchemy database. By default, the app uses the SQLite database `shifts.db` in the instance directory.
+Optionally configure a different database:
+export DATABASE_URL="your-database-connection-url"
 
-Run the API on port `5555`:
+By default, the application uses SQLite with a database named `shifts.db` in the instance directory.
 
-```bash
+### 4. Set up the database
+
+If the migration repository has not already been initialized:
+pipenv run flask --app app db init
+
+Create and apply the initial migration:
+
+pipenv run flask --app app db migrate -m "Create users, notes, and shifts"
+pipenv run flask --app app db upgrade
+
+For future model changes:
+
+pipenv run flask --app app db migrate -m "Describe the schema change"
+pipenv run flask --app app db upgrade
+
+Do not run `db init` again if the migrations directory already exists.
+
+### 5. Start the backend
+
 pipenv run python app.py
-```
 
-### Run a frontend client
+The backend runs on port `5555`.
 
-The session client is configured to proxy API requests to the Flask server on port `5555`. From a second terminal, start it with:
+### 6. Start the JWT frontend
 
-```bash
-cd client-with-sessions
-npm install
-npm start
-```
+Open another terminal:
 
-Open `http://localhost:4000`, choose **Sign Up** to create an account, then use those credentials to log in. The JWT client is an alternative auth-flow example:
 
-```bash
 cd client-with-jwt
 npm install
 npm start
-```
 
-Both provided clients demonstrate authentication only. After login they show a placeholder page; the assignment does not provide a shift-tracker UI, so shifts are currently used through the documented API endpoints.
 
-## Database migrations and seed data
+### 7. Start the session-based frontend
 
-The initial Flask-Migrate revision is included in `migrations/versions`. Apply it to create the database tables:
+Open another terminal:
 
-```bash
-pipenv run flask --app app db upgrade
-```
 
-After model changes, generate and apply a new migration:
+cd client-with-sessions
+npm install
+npm start
 
-```bash
-pipenv run flask --app app db migrate -m "Describe the schema change"
-pipenv run flask --app app db upgrade
-```
 
-Run the Faker seed script after applying migrations:
-
-```bash
-pipenv run python seed.py
-```
-
-The script creates up to three demo users and two completed shifts for each. It is safe to rerun: existing `demo_worker_1` through `demo_worker_3` users are left unchanged. Newly generated passwords are printed once when each demo user is created; save them if you need to log in. The script does not delete or overwrite existing records.
+Check the frontend proxy configuration against the backend port before running either client. The JWT client is configured for port `5555`, while the session client currently specifies port `5000`.
 
 ## Authentication
 
-The API supports session cookies and issues JWTs, but protected resource routes currently authenticate using the Flask session cookie. The JWT is currently accepted by `GET /me`; it is not yet a substitute for the session on the notes or shifts endpoints.
+The API supports both session-based authentication and JWT generation.
 
-For browser clients, send JSON requests with `Content-Type: application/json`. Keep the session cookie between requests.
+### Session Authentication
 
-| Method and path | Authentication | Description |
+The session-based client uses Flask session cookies to maintain the authenticated user's identity.
+
+Protected notes and shift endpoints currently require a valid Flask session.
+
+### JWT Authentication
+
+The API returns a JWT during signup and login.
+
+The JWT is accepted by:
+
+`GET /me`
+
+Send the token through the Authorization header:
+
+```http
+Authorization: Bearer <JWT>
+```
+
+**Important:** JWT authentication is currently used for the `/me` endpoint. It does not replace session authentication for notes and shifts.
+
+## API Documentation
+
+Send JSON requests using:
+
+```http
+Content-Type: application/json
+```
+
+Keep the session cookie between requests when accessing session-protected endpoints.
+
+### Authentication Endpoints
+
+| Method | Endpoint | Description |
 |---|---|---|
-| `POST /signup` | Public | Register a user, start a session, and return a JWT |
-| `POST /login` | Public | Authenticate a user, start a session, and return a JWT |
-| `GET /check_session` | Session cookie | Return the current session user or `{}` |
-| `DELETE /logout` | Session cookie if logged in | Clear the current session |
-| `GET /me` | JWT bearer token | Validate the token and return its user |
+| POST | `/signup` | Register a new user. |
+| POST | `/login` | Authenticate an existing user. |
+| GET | `/check_session` | Check the current session. |
+| DELETE | `/logout` | Clear the current session. |
+| GET | `/me` | Verify a JWT and retrieve its user. |
 
-### `POST /signup`
+### Signup
 
-Creates a user, hashes their password, starts a session, and returns a JWT.
-Username, password, and password confirmation are required. The username is limited to 80 characters, and the password confirmation must match.
+`POST /signup`
 
-Request:
+Example request:
 
 ```json
 {
@@ -166,25 +251,13 @@ Request:
 }
 ```
 
-Success response (`201 Created`):
+Returns `201 Created` when registration succeeds.
 
-```json
-{
-  "id": 1,
-  "username": "alex",
-  "token": "<JWT>",
-  "user": {
-    "id": 1,
-    "username": "alex"
-  }
-}
-```
+### Login
 
-### `POST /login`
+`POST /login`
 
-Authenticates an existing user and starts a session. The response has the same fields as signup; successful login returns `200 OK`. Invalid credentials return `401 Unauthorized`; malformed request bodies or missing credentials return `400 Bad Request`.
-
-Request:
+Example request:
 
 ```json
 {
@@ -193,175 +266,69 @@ Request:
 }
 ```
 
-### `GET /check_session`
+Returns `200 OK` when authentication succeeds and `401 Unauthorized` for invalid credentials.
 
-Returns the current session user:
+### Notes Endpoints
 
-```json
-{
-  "id": 1,
-  "username": "alex"
-}
-```
+All notes endpoints require a logged-in session.
 
-If no valid session exists, returns `{}` with `200 OK`.
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/notes` | Retrieve the current user's notes. |
+| POST | `/notes` | Create a new note. |
+| GET | `/notes/<note_id>` | Retrieve a specific note. |
+| PATCH | `/notes/<note_id>` | Update a note. |
+| DELETE | `/notes/<note_id>` | Delete a note. |
 
-### `DELETE /logout`
+### Notes Pagination
 
-Clears the current session and returns `{}` with `200 OK`.
-
-### `GET /me`
-
-Verifies a JWT and returns its user. Send the token in the `Authorization` header:
-
-```http
-Authorization: Bearer YOUR_JWT_TOKEN
-```
-
-Returns the user object with `200 OK`, or an authentication error with `401 Unauthorized`.
-
-### Authentication request examples
-
-Signup creates the session cookie and returns a JWT:
-
-```bash
-curl -i -c cookies.txt -H "Content-Type: application/json" \
-  -d '{"username":"alex","password":"example-password","password_confirmation":"example-password"}' \
-  http://localhost:5555/signup
-```
-
-Login uses the same cookie jar:
-
-```bash
-curl -i -c cookies.txt -b cookies.txt -H "Content-Type: application/json" \
-  -d '{"username":"alex","password":"example-password"}' \
-  http://localhost:5555/login
-```
-
-Use the returned token to verify JWT authentication:
-
-```bash
-curl -i -H "Authorization: Bearer YOUR_JWT_TOKEN" http://localhost:5555/me
-```
-
-`cookies.txt` contains an authentication cookie; keep it private and remove it when finished.
-
-Check or clear the session with:
-
-```bash
-curl -i -b cookies.txt http://localhost:5555/check_session
-curl -i -X DELETE -b cookies.txt http://localhost:5555/logout
-```
-
-## Notes
-
-All notes endpoints require a logged-in session. Each query is scoped to the current user; a user cannot read, update, or delete another user's note.
-
-| Method and path | Description |
-|---|---|
-| `GET /notes?page=1&per_page=10` | Paginated list of the current user's notes |
-| `POST /notes` | Create a note |
-| `GET /notes/<note_id>` | Get one of the current user's notes |
-| `PATCH /notes/<note_id>` | Update a note's title and/or content |
-| `DELETE /notes/<note_id>` | Delete one of the current user's notes |
-
-### `GET /notes`
-
-Returns a page of the current user's notes. `page` defaults to `1`; `per_page` defaults to `10` and is limited to a maximum of `100`.
+Use query parameters to control pagination:
 
 ```http
 GET /notes?page=1&per_page=10
 ```
 
-Response:
+- `page` defaults to 1.
+- `per_page` defaults to 10.
+- The maximum `per_page` value is 100.
 
-```json
-{
-  "page": 1,
-  "per_page": 10,
-  "total": 1,
-  "notes": [
-    {
-      "id": 1,
-      "title": "Weekly plan",
-      "content": "Finish tasks before Friday.",
-      "user_id": 1
-    }
-  ]
-}
-```
+### Create a Note
 
-### `POST /notes`
-
-Creates a note for the current user. `title` is required; `content` defaults to an empty string.
+`POST /notes`
 
 ```json
 {
   "title": "Weekly plan",
-  "content": "Finish tasks before Friday."
+  "content": "Complete project tasks before Friday."
 }
 ```
 
-Returns the created note with `201 Created`.
+The title is required. Content defaults to an empty string.
 
-### `GET /notes/<note_id>`
+### Update a Note
 
-Returns one of the current user's notes. Returns `404 Not Found` if it does not exist or belongs to another user.
-
-```bash
-curl -i -b cookies.txt http://localhost:5555/notes/1
-```
-
-### `PATCH /notes/<note_id>`
-
-Updates the supplied `title` and/or `content` fields. The title cannot be blank.
+`PATCH /notes/<note_id>`
 
 ```json
 {
-  "title": "Updated plan"
+  "title": "Updated weekly plan"
 }
 ```
 
-Returns the updated note with `200 OK`.
+### Shift Endpoints
 
-```bash
-curl -i -X PATCH -b cookies.txt -H "Content-Type: application/json" \
-  -d '{"title":"Updated plan"}' http://localhost:5555/notes/1
-```
+All shift endpoints require a logged-in session.
 
-### `DELETE /notes/<note_id>`
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/shifts/clock-in` | Start a new shift. |
+| PATCH | `/shifts/<shift_id>/clock-out` | Finish an active shift. |
 
-Deletes one of the current user's notes and returns `{}` with `200 OK`. Returns `404 Not Found` for missing notes or notes owned by another user.
+### Clock In
 
-Example create request:
+`POST /shifts/clock-in`
 
-```bash
-curl -i -b cookies.txt -H "Content-Type: application/json" \
-  -d '{"title":"Weekly plan","content":"Finish tasks before Friday."}' \
-  http://localhost:5555/notes
-```
-
-Delete example:
-
-```bash
-curl -i -X DELETE -b cookies.txt http://localhost:5555/notes/1
-```
-
-## Shifts
-
-Every shift endpoint requires a logged-in **Flask session cookie** and scopes the operation to that session's user ID. JWTs are issued by the auth endpoints, but JWT-only requests do not authenticate notes or shifts.
-
-| Method and path | Description |
-|---|---|
-| `GET /shifts?page=1&per_page=10` | Paginated list of the current user's shifts |
-| `POST /shifts` | Create an active shift (clock in) |
-| `POST /shifts/clock-in` | Alias for creating an active shift |
-| `GET /shifts/<shift_id>` | Get one of the current user's shifts |
-| `PATCH /shifts/<shift_id>` | Update `clock_in` and/or `clock_out` timestamps |
-| `DELETE /shifts/<shift_id>` | Delete one of the current user's shifts |
-| `PATCH /shifts/<shift_id>/clock-out` | Close an active shift using server time |
-
-### `GET /shifts`
+Creates a shift using the current UTC time.
 
 Lists only the current user's shifts, newest first. `page` defaults to `1`; `per_page` defaults to `10` and is limited to a maximum of `100`. Invalid or out-of-range values are clamped to supported values. Pages beyond the final page return an empty `shifts` list.
 
@@ -387,51 +354,21 @@ Response:
 }
 ```
 
-### `POST /shifts` and `POST /shifts/clock-in`
+A user cannot start another shift while an active shift exists.
 
-Both paths create a shift with the current UTC time as `clock_in` and `clock_out` set to `null`; do not provide timestamps in the request. Returns `201 Created`. If the user already has an active shift, returns `400 Bad Request`.
+### Clock Out
 
-```bash
-curl -i -X POST -b cookies.txt http://localhost:5555/shifts/clock-in
-```
+`PATCH /shifts/<shift_id>/clock-out`
 
-### `GET /shifts/<shift_id>`
+Closes the specified active shift if it belongs to the logged-in user.
 
-Returns the requested shift if it belongs to the current user. Missing and non-owned shifts return `404 Not Found`.
+The API rejects attempts to close another user's shift or a shift that has already been closed.
 
-```bash
-curl -i -b cookies.txt http://localhost:5555/shifts/1
-```
+## Error Responses
 
-### `PATCH /shifts/<shift_id>`
+Errors are returned in JSON format.
 
-Updates one or both timestamps. Values must be ISO 8601; timestamps without an offset are interpreted as UTC. Unknown fields, malformed values, empty payloads, and clock-out times not later than clock-in return `400 Bad Request`. `clock_out: null` reopens a shift only if the user has no other active shift.
-
-```bash
-curl -i -X PATCH -b cookies.txt -H "Content-Type: application/json" \
-  -d '{"clock_in":"2026-10-31T08:30:00Z","clock_out":"2026-10-31T16:30:00Z"}' \
-  http://localhost:5555/shifts/1
-```
-
-### `PATCH /shifts/<shift_id>/clock-out`
-
-Closes the current user's active shift using the current UTC time. Returns the updated shift with `200 OK`. Returns `404 Not Found` if the shift does not exist or belongs to another user, and `400 Bad Request` if it is already closed.
-
-```bash
-curl -i -X PATCH -b cookies.txt http://localhost:5555/shifts/1/clock-out
-```
-
-### `DELETE /shifts/<shift_id>`
-
-Deletes one of the current user's shifts and returns `{}` with `200 OK`. A missing or non-owned shift returns `404 Not Found`.
-
-```bash
-curl -i -X DELETE -b cookies.txt http://localhost:5555/shifts/1
-```
-
-## Error responses
-
-Errors use a JSON `errors` array. For example:
+Example:
 
 ```json
 {
@@ -439,27 +376,70 @@ Errors use a JSON `errors` array. For example:
 }
 ```
 
-Common status codes are `400` for invalid input or business-rule violations, `401` for missing/invalid authentication, and `404` when a resource is not found or is not owned by the current user.
+Common HTTP status codes:
 
-## Tests
+| Status | Meaning |
+|---|---|
+| 200 | Request successful. |
+| 201 | Resource created successfully. |
+| 400 | Invalid input or business-rule violation. |
+| 401 | Authentication required or invalid. |
+| 404 | Resource not found or not owned by the current user. |
 
-Run the test suite with:
+## Testing
+
+The backend uses pytest for automated testing.
+
+Run the complete test suite:
 
 ```bash
 pipenv run pytest
 ```
 
-Automated tests are organized in `tests/test_app.py` (shift endpoints, schemas, auth flows, and seed behavior), `tests/test_auth.py` (authentication), and `tests/test_notes.py` (notes routes). Run `pipenv run pytest` to execute all of them.
+Run tests with detailed output:
 
-## Project layout
+```bash
+pipenv run pytest -v
+```
 
-- `app.py` — Flask application factory and blueprint registration.
-- `config.py` — application and database configuration.
-- `models.py` — database, user, note, and shift models.
-- `auth_routes.py` — signup, login, session, logout, and JWT `/me` routes.
-- `note_routes.py` — protected notes CRUD and pagination.
-- `shift_routes.py` — protected shift CRUD, pagination, and clock-in/clock-out.
-- `shift_schemas.py` — shift validation and serialization schemas.
-- `seed.py` — creates sample users and shifts for local development.
-- `migrations/` — tracked Alembic migration history.
-- `tests/` — pytest tests.
+The test suite includes tests for application, authentication, notes and shift functionality.
+
+## Security Considerations
+
+- Passwords are stored as bcrypt hashes.
+- Protected resources require authentication.
+- Notes and shifts are scoped to the current user.
+- JWTs are verified before the `/me` endpoint returns user information.
+- A secure `SECRET_KEY` should be configured before deployment.
+- Secret keys and other private credentials should not be committed to GitHub.
+
+## Future Improvements
+
+The following are possible improvements for future development:
+
+1. Extend JWT authentication to protected notes and shift endpoints if token-based access is required.
+2. Add a complete shift history endpoint if users need to review previous shifts.
+3. Add further automated tests for edge cases and security.
+4. Improve frontend/backend configuration so both clients use the correct backend port.
+5. Add API documentation using Swagger or OpenAPI.
+6. Add deployment instructions and production environment configuration.
+
+
+## Team Contribution and Collaboration
+
+The project is developed collaboratively using Git and GitHub.
+
+Recommended workflow:
+
+1. Pull the latest changes from the team's `main` branch.
+2. Create or switch to your assigned feature branch.
+3. Implement your assigned work.
+4. Run the relevant tests.
+5. Commit changes using clear commit messages.
+6. Push your branch to GitHub.
+7. Open a pull request for team review.
+
+
+## Conclusion
+
+The Productivity API provides a foundation for user authentication, personal notes management and employee shift tracking. It combines a Flask backend with two React authentication clients and can be extended with additional productivity features in future development.
