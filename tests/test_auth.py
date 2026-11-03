@@ -119,3 +119,21 @@ def test_login_rejects_missing_credentials(client):
 
     assert response.status_code == 400
     assert "Username is required" in response.get_json()["errors"]
+
+def test_logout_clears_user_session(client):
+    client.post("/signup", json={
+        "username": "timothy",
+        "password": "password123",
+        "password_confirmation": "password123",
+    })
+
+    before_logout = client.get("/check_session")
+    assert before_logout.status_code == 200
+    assert before_logout.get_json()["username"] == "timothy"
+
+    logout_response = client.delete("/logout")
+    assert logout_response.status_code == 200
+
+    after_logout = client.get("/check_session")
+    assert after_logout.status_code == 200
+    assert after_logout.get_json() == {}    
