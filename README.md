@@ -141,16 +141,16 @@ Before running the project, install:
 ## Installation and Setup
 
 ### 1. Clone the repository
-
+```bash
 git clone <repository-url>
 cd <repository-folder>
-
+```
 ### 2. Install backend dependencies
 
 Install the exact dependency versions recorded in the lock file:
 
 ```bash
-pipenv install --dev --deploy
+pipenv install --dev 
 ```
 
 ### 3. Configure environment variables
@@ -181,8 +181,8 @@ pipenv run flask --app app db upgrade
 For future model changes:
 
 ```bash
-pipenv run flask --app app db migrate -m "Describe the schema change"
-pipenv run flask --app app db upgrade
+pipenv run flask --app server.app db migrate -m "Describe the schema change"
+pipenv run flask --app server.app db upgrade
 ```
 
 ### 5. Add demo data
@@ -200,16 +200,16 @@ overwritten. Generated passwords are printed only when a user is first created;
 save them if you need to sign in as a demo user.
 
 ### 6. Start the backend
-
-pipenv run python app.py
-
+```bash
+pipenv run python -m server.app
+```
 The backend runs on port `5555`.
 
 ### 7. Start the JWT frontend
 
 Open another terminal:
 
-
+```bash
 cd client-with-jwt
 npm install
 npm start
@@ -220,7 +220,7 @@ npm start
 
 Open another terminal:
 
-
+```bash
 cd client-with-sessions
 npm install
 npm start
@@ -410,7 +410,7 @@ An active shift conflict returns `409 Conflict`. Invalid request data returns
 
 Closes the specified active shift if it belongs to the logged-in user.
 
-The API rejects attempts to close another user's shift or a shift that has already been closed.
+Another user's shift returns `404 Not Found`. A shift that is already closed returns `409 Conflict`.
 
 ## Error Responses
 
@@ -433,6 +433,7 @@ Common HTTP status codes:
 | 400 | Invalid input or business-rule violation. |
 | 401 | Authentication required or invalid. |
 | 404 | Resource not found or not owned by the current user. |
+| 409 | Conflict, such as clocking in while a shift is already active. |
 
 ## Testing
 

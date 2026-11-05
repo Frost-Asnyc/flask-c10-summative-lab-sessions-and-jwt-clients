@@ -4,7 +4,7 @@ from flask import Blueprint, jsonify, request, session
 from marshmallow import ValidationError
 
 from server.models.models import Shift, db
-from server.scheemas.shift_schemas import ShiftSchema, ShiftUpdateSchema
+from server.schemas.shift_schemas import ShiftSchema, ShiftUpdateSchema
 
 
 shift_routes = Blueprint("shift_routes", __name__)
@@ -173,7 +173,7 @@ def clock_out(shift_id):
         return jsonify({"errors": ["Shift not found"]}), 404
 
     if shift.clock_out is not None:
-        return jsonify({"errors": ["This shift is already clocked out"]}), 400
+        return jsonify({"errors": ["This shift is already clocked out"]}), 409
 
     clock_out_time = datetime.now(timezone.utc)
     clock_in_time = shift.clock_in
