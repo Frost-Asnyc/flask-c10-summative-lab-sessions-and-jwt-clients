@@ -1,4 +1,4 @@
-from models import User, Note, db
+from server.models.models import User, Note, db
 
 
 def create_user_and_login(client, username="testuser"):

@@ -5,7 +5,7 @@ import pytest
 from datetime import datetime, timedelta, timezone
 from server.app import create_app
 from server.routes.auth_routes import bcrypt
-from models import Shift, User, db
+from server.models.models import Shift, User, db
 from server.seed import seed_database
 from server.routes.shift_routes import format_validation_errors
 

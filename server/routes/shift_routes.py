@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request, session
 from marshmallow import ValidationError
 
-from models import Shift, db
+from server.models.models import Shift, db
 from server.scheemas.shift_schemas import ShiftSchema, ShiftUpdateSchema
 
 

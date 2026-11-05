@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request, session
 
-from models import Note, db
+from server.models.models import Note, db
 
 note_routes = Blueprint("note_routes", __name__)
 

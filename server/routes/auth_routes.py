@@ -1,7 +1,7 @@
 from flask import Blueprint, current_app, jsonify, request, session
 from flask_bcrypt import Bcrypt
 
-from models import User, db
+from server.models.models import User, db
 
 try:
     import jwt

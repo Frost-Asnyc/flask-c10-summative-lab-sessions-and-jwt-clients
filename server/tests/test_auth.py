@@ -1,4 +1,4 @@
-from models import User
+from server.models.models import User
 
 
 def test_signup_successfully_registers_a_user(client, app):
