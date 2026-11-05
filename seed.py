@@ -1,8 +1,6 @@
 from datetime import datetime, timedelta, timezone
-
 from faker import Faker
 from flask_bcrypt import Bcrypt
-
 from app import create_app
 from models import Note, Shift, User, db
 
