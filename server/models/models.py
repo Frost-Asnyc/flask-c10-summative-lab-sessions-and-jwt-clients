@@ -1,3 +1,4 @@
+import bcrypt
 from flask_sqlalchemy import SQLAlchemy
 
 
@@ -10,9 +11,17 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), nullable=False, unique=True, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
-
     notes = db.relationship("Note", back_populates="user", cascade="all, delete-orphan")
     shifts = db.relationship("Shift", back_populates="user", cascade="all, delete-orphan")
+
+    @property
+    def password(self):
+        raise AttributeError("Password is write-only")
+
+    @password.setter
+    def password(self, plain_text):
+        self.password_hash = bcrypt.generate_password_hash(plain_text).decode("utf-8")
+
 
     def __repr__(self):
         return f"<User {self.username}>"
