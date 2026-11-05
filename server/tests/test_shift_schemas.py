@@ -4,8 +4,8 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from marshmallow import ValidationError
 
-from shift_schemas import UTCDateTime
-from shift_schemas import ShiftSchema, ShiftUpdateSchema
+from server.scheemas.shift_schemas import UTCDateTime
+from server.scheemas.shift_schemas import ShiftSchema, ShiftUpdateSchema
 
 
 def test_shift_schema_accepts_valid_shift():

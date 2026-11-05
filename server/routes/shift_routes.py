@@ -4,7 +4,7 @@ from flask import Blueprint, jsonify, request, session
 from marshmallow import ValidationError
 
 from models import Shift, db
-from shift_schemas import ShiftSchema, ShiftUpdateSchema
+from server.scheemas.shift_schemas import ShiftSchema, ShiftUpdateSchema
 
 
 shift_routes = Blueprint("shift_routes", __name__)

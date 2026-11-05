@@ -1,11 +1,11 @@
 from flask import Flask
 from flask_migrate import Migrate
 
-from auth_routes import auth_routes
-from config import Config
+from server.routes.auth_routes import auth_routes
+from server.app.config import Config
 from models import db
-from note_routes import note_routes
-from shift_routes import shift_routes
+from server.routes.note_routes import note_routes
+from server.routes.shift_routes import shift_routes
 
 
 migrate = Migrate()

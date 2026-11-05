@@ -3,11 +3,11 @@ import jwt
 import pytest
 
 from datetime import datetime, timedelta, timezone
-from app import create_app
-from auth_routes import bcrypt
+from server.app import create_app
+from server.routes.auth_routes import bcrypt
 from models import Shift, User, db
-from seed import seed_database
-from shift_routes import format_validation_errors
+from server.seed import seed_database
+from server.routes.shift_routes import format_validation_errors
 
 def create_test_app():
     return create_app(
