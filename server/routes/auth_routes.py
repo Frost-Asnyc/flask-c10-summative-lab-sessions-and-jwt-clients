@@ -1,7 +1,9 @@
 from flask import Blueprint, current_app, jsonify, request, session
+from sqlalchemy.exc import IntegrityError
 from flask_bcrypt import Bcrypt
 
-from server.models.models import User, db
+
+from server.models.models import User, bcrypt, db
 
 try:
     import jwt
@@ -74,12 +76,17 @@ def signup():
         errors.append("Username already exists")
 
     if errors:
-        return jsonify({"errors": errors}), 400
-
+        status = 409 if errors == ["Username already exists"] else 400
+        return jsonify({"errors": errors}), status
+    
     password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
     user = User(username=username, password_hash=password_hash)
     db.session.add(user)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"errors": ["Username already exists"]}), 409
 
     session["user_id"] = user.id
     user_data = serialize_user(user)
@@ -116,7 +123,7 @@ def login():
 def check_session():
     user_id = session.get("user_id")
     if user_id is None:
-        return jsonify({}), 200
+        return jsonify({"errors": ["Authentication required"]}), 401
 
     user = db.session.get(User, user_id)
     if user is None:

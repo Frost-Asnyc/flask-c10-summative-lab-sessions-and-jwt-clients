@@ -1,9 +1,9 @@
-import bcrypt
+from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
 
 
 db = SQLAlchemy()
-
+bcrypt = Bcrypt()
 
 class User(db.Model):
     """Application user."""
