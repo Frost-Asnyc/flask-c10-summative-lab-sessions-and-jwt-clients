@@ -254,7 +254,7 @@ def test_clock_out_rejects_a_shift_that_is_already_closed():
 
     response = client.patch(f"/shifts/{shift_id}/clock-out")
 
-    assert response.status_code == 400
+    assert response.status_code == 409
     assert response.json == {"errors": ["This shift is already clocked out"]}
 
     with app.app_context():
@@ -733,7 +733,7 @@ def test_signup_rejects_duplicate_usernames():
 
     duplicate_response = client.post("/signup", json=payload)
 
-    assert duplicate_response.status_code == 400
+    assert duplicate_response.status_code == 409
     assert duplicate_response.json == {"errors": ["Username already exists"]}
 
     with app.app_context():
@@ -821,8 +821,9 @@ def test_logout_clears_session_and_check_session_handles_no_user():
         user_id = user.id
 
     client = app.test_client()
-    assert client.get("/check_session").status_code == 200
-    assert client.get("/check_session").json == {}
+    logged_out = client.get("/check_session")
+    assert logged_out.status_code == 401
+    assert logged_out.json == {"errors": ["Authentication required"]}
 
     with client.session_transaction() as user_session:
         user_session["user_id"] = user_id
@@ -831,11 +832,10 @@ def test_logout_clears_session_and_check_session_handles_no_user():
     logout_response = client.delete("/logout")
     assert logout_response.status_code == 200
     assert logout_response.json == {}
-    assert client.get("/check_session").json == {}
+    assert client.get("/check_session").status_code == 401
 
     with app.app_context():
         db.drop_all()
-
 
 def test_me_rejects_missing_or_invalid_jwt():
     app = create_test_app()

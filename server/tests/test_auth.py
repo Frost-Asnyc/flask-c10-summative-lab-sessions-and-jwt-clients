@@ -67,7 +67,7 @@ def test_signup_rejects_duplicate_username(client):
         "password_confirmation": "another123",
     })
 
-    assert response.status_code == 400
+    assert response.status_code == 409
     assert "Username already exists" in response.get_json()["errors"]
 
 
@@ -135,5 +135,5 @@ def test_logout_clears_user_session(client):
     assert logout_response.status_code == 200
 
     after_logout = client.get("/check_session")
-    assert after_logout.status_code == 200
-    assert after_logout.get_json() == {}    
+    assert after_logout.status_code == 401
+    assert after_logout.get_json() == {"errors": ["Authentication required"]}    
